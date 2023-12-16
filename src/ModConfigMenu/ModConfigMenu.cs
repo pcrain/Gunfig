@@ -190,56 +190,67 @@ internal static class ModConfigMenu
       PlayMenuCursorSound(control);
     }
 
-    private static dfPanel GetPrototypeCheckboxWrapperPanel() =>
-      GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.TabVideo.Find<dfPanel>("V-SyncCheckBoxPanel");
-    private static dfPanel GetPrototypeCheckboxInnerPanel() =>
-      GetPrototypeCheckboxWrapperPanel().Find<dfPanel>("Panel");
-    private static dfCheckbox GetPrototypeCheckbox() =>
-      GetPrototypeCheckboxInnerPanel().Find<dfCheckbox>("Checkbox");
-    private static dfSprite GetPrototypeEmptyCheckboxSprite() =>
-      GetPrototypeCheckbox().Find<dfSprite>("EmptyCheckbox");
-    private static dfSprite GetPrototypeCheckedCheckboxSprite() =>
-      GetPrototypeCheckbox().Find<dfSprite>("CheckedCheckbox");
-    private static dfLabel GetPrototypeCheckboxLabel() =>
-      GetPrototypeCheckboxInnerPanel().Find<dfLabel>("CheckboxLabel");
-    private static dfPanel GetPrototypeLeftRightWrapperPanel() =>
-      GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.TabVideo.Find<dfPanel>("VisualPresetArrowSelectorPanel");
-    private static dfPanel GetPrototypeLeftRightInnerPanel() =>
-      GetPrototypeLeftRightWrapperPanel().Find<dfPanel>("PanelEnsmallenerThatmakesDavesLifeHardandBrentsLifeEasy");
-    private static dfLabel GetPrototypeLeftRightPanelLabel() =>
-      GetPrototypeLeftRightInnerPanel().Find<dfLabel>("OptionsArrowSelectorLabel");
-    private static dfSprite GetPrototypeLeftRightPanelLeftSprite() =>
-      GetPrototypeLeftRightInnerPanel().Find<dfSprite>("OptionsArrowSelectorArrowLeft");
-    private static dfSprite GetPrototypeLeftRightPanelRightSprite() =>
-      GetPrototypeLeftRightInnerPanel().Find<dfSprite>("OptionsArrowSelectorArrowRight");
-    private static dfLabel GetPrototypeLeftRightPanelSelection() =>
-      GetPrototypeLeftRightInnerPanel().Find<dfLabel>("OptionsArrowSelectorSelection");
-    private static dfPanel GetPrototypeInfoWrapperPanel() =>
-      GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.TabVideo.Find<dfPanel>("ResolutionArrowSelectorPanelWithInfoBox");
-    private static dfPanel GetPrototypeInfoInnerPanel() =>
-      GetPrototypeInfoWrapperPanel().Find<dfPanel>("PanelEnsmallenerThatmakesDavesLifeHardandBrentsLifeEasy");
-    private static dfLabel GetPrototypeInfoPanelLabel() =>
-      GetPrototypeInfoInnerPanel().Find<dfLabel>("OptionsArrowSelectorLabel");
-    private static dfSprite GetPrototypeInfoPanelLeftSprite() =>
-      GetPrototypeInfoInnerPanel().Find<dfSprite>("OptionsArrowSelectorArrowLeft");
-    private static dfSprite GetPrototypeInfoPanelRightSprite() =>
-      GetPrototypeInfoInnerPanel().Find<dfSprite>("OptionsArrowSelectorArrowRight");
-    private static dfLabel GetPrototypeInfoPanelSelection() =>
-      GetPrototypeInfoInnerPanel().Find<dfLabel>("OptionsArrowSelectorSelection");
-    private static dfLabel GetPrototypeInfoInfoPanel() =>
-      GetPrototypeInfoWrapperPanel().Find<dfLabel>("OptionsArrowSelectorInfoLabel");
-    private static dfPanel GetPrototypeButtonWrapperPanel() =>
-      GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.TabControls.Find<dfPanel>("EditKeyboardBindingsButtonPanel");
-    private static dfPanel GetPrototypeButtonInnerPanel() =>
-      GetPrototypeButtonWrapperPanel().Find<dfPanel>("PanelEnsmallenerThatmakesDavesLifeHardandBrentsLifeEasy");
-    private static dfButton GetPrototypeButton() =>
-      GetPrototypeButtonInnerPanel().Find<dfButton>("EditKeyboardBindingsButton");
-    private static dfPanel GetPrototypeLabelWrapperPanel() =>
-      GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.TabControls.Find<dfPanel>("PlayerOneLabelPanel");
-    private static dfPanel GetPrototypeLabelInnerPanel() =>
-      GetPrototypeLabelWrapperPanel().Find<dfPanel>("PanelEnsmallenerThatmakesDavesLifeHardandBrentsLifeEasy");
-    private static dfLabel GetPrototypeLabel() =>
-      GetPrototypeLabelInnerPanel().Find<dfLabel>("Label");
+    private static dfPanel    _CachedPrototypeCheckboxWrapperPanel      = null;
+    private static dfPanel    _CachedPrototypeCheckboxInnerPanel        = null;
+    private static dfCheckbox _CachedPrototypeCheckbox                  = null;
+    private static dfSprite   _CachedPrototypeEmptyCheckboxSprite       = null;
+    private static dfSprite   _CachedPrototypeCheckedCheckboxSprite     = null;
+    private static dfLabel    _CachedPrototypeCheckboxLabel             = null;
+    private static dfPanel    _CachedPrototypeLeftRightWrapperPanel     = null;
+    private static dfPanel    _CachedPrototypeLeftRightInnerPanel       = null;
+    private static dfLabel    _CachedPrototypeLeftRightPanelLabel       = null;
+    private static dfSprite   _CachedPrototypeLeftRightPanelLeftSprite  = null;
+    private static dfSprite   _CachedPrototypeLeftRightPanelRightSprite = null;
+    private static dfLabel    _CachedPrototypeLeftRightPanelSelection   = null;
+    private static dfPanel    _CachedPrototypeInfoWrapperPanel          = null;
+    private static dfPanel    _CachedPrototypeInfoInnerPanel            = null;
+    private static dfLabel    _CachedPrototypeInfoPanelLabel            = null;
+    private static dfSprite   _CachedPrototypeInfoPanelLeftSprite       = null;
+    private static dfSprite   _CachedPrototypeInfoPanelRightSprite      = null;
+    private static dfLabel    _CachedPrototypeInfoPanelSelection        = null;
+    private static dfLabel    _CachedPrototypeInfoInfoPanel             = null;
+    private static dfPanel    _CachedPrototypeButtonWrapperPanel        = null;
+    private static dfPanel    _CachedPrototypeButtonInnerPanel          = null;
+    private static dfButton   _CachedPrototypeButton                    = null;
+    private static dfPanel    _CachedPrototypeLabelWrapperPanel         = null;
+    private static dfPanel    _CachedPrototypeLabelInnerPanel           = null;
+    private static dfLabel    _CachedPrototypeLabel                     = null;
+
+    // References to dfControls are invalidated after each run is started, so we need to clear any cached values whenever panels are rebuilt
+    private static void ReCacheControls()
+    {
+      FullOptionsMenuController optionsMenu = GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu;
+
+      _CachedPrototypeCheckboxWrapperPanel      = optionsMenu.TabVideo.Find<dfPanel>("V-SyncCheckBoxPanel");
+      _CachedPrototypeCheckboxInnerPanel        = _CachedPrototypeCheckboxWrapperPanel.Find<dfPanel>("Panel");
+      _CachedPrototypeCheckbox                  = _CachedPrototypeCheckboxInnerPanel.Find<dfCheckbox>("Checkbox");
+      _CachedPrototypeEmptyCheckboxSprite       = _CachedPrototypeCheckbox.Find<dfSprite>("EmptyCheckbox");
+      _CachedPrototypeCheckedCheckboxSprite     = _CachedPrototypeCheckbox.Find<dfSprite>("CheckedCheckbox");
+      _CachedPrototypeCheckboxLabel             = _CachedPrototypeCheckboxInnerPanel.Find<dfLabel>("CheckboxLabel");
+
+      _CachedPrototypeLeftRightWrapperPanel     = optionsMenu.TabVideo.Find<dfPanel>("VisualPresetArrowSelectorPanel");
+      _CachedPrototypeLeftRightInnerPanel       = _CachedPrototypeLeftRightWrapperPanel.Find<dfPanel>("PanelEnsmallenerThatmakesDavesLifeHardandBrentsLifeEasy");
+      _CachedPrototypeLeftRightPanelLabel       = _CachedPrototypeLeftRightInnerPanel.Find<dfLabel>("OptionsArrowSelectorLabel");
+      _CachedPrototypeLeftRightPanelLeftSprite  = _CachedPrototypeLeftRightInnerPanel.Find<dfSprite>("OptionsArrowSelectorArrowLeft");
+      _CachedPrototypeLeftRightPanelRightSprite = _CachedPrototypeLeftRightInnerPanel.Find<dfSprite>("OptionsArrowSelectorArrowRight");
+      _CachedPrototypeLeftRightPanelSelection   = _CachedPrototypeLeftRightInnerPanel.Find<dfLabel>("OptionsArrowSelectorSelection");
+
+      _CachedPrototypeInfoWrapperPanel          = optionsMenu.TabVideo.Find<dfPanel>("ResolutionArrowSelectorPanelWithInfoBox");
+      _CachedPrototypeInfoInnerPanel            = _CachedPrototypeInfoWrapperPanel.Find<dfPanel>("PanelEnsmallenerThatmakesDavesLifeHardandBrentsLifeEasy");
+      _CachedPrototypeInfoPanelLabel            = _CachedPrototypeInfoInnerPanel.Find<dfLabel>("OptionsArrowSelectorLabel");
+      _CachedPrototypeInfoPanelLeftSprite       = _CachedPrototypeInfoInnerPanel.Find<dfSprite>("OptionsArrowSelectorArrowLeft");
+      _CachedPrototypeInfoPanelRightSprite      = _CachedPrototypeInfoInnerPanel.Find<dfSprite>("OptionsArrowSelectorArrowRight");
+      _CachedPrototypeInfoPanelSelection        = _CachedPrototypeInfoInnerPanel.Find<dfLabel>("OptionsArrowSelectorSelection");
+      _CachedPrototypeInfoInfoPanel             = _CachedPrototypeInfoWrapperPanel.Find<dfLabel>("OptionsArrowSelectorInfoLabel");
+
+      _CachedPrototypeButtonWrapperPanel        = optionsMenu.TabControls.Find<dfPanel>("EditKeyboardBindingsButtonPanel");
+      _CachedPrototypeButtonInnerPanel          = _CachedPrototypeButtonWrapperPanel.Find<dfPanel>("PanelEnsmallenerThatmakesDavesLifeHardandBrentsLifeEasy");
+      _CachedPrototypeButton                    = _CachedPrototypeButtonInnerPanel.Find<dfButton>("EditKeyboardBindingsButton");
+
+      _CachedPrototypeLabelWrapperPanel         = optionsMenu.TabControls.Find<dfPanel>("PlayerOneLabelPanel");
+      _CachedPrototypeLabelInnerPanel           = _CachedPrototypeLabelWrapperPanel.Find<dfPanel>("PanelEnsmallenerThatmakesDavesLifeHardandBrentsLifeEasy");
+      _CachedPrototypeLabel                     = _CachedPrototypeLabelInnerPanel.Find<dfLabel>("Label");
+    }
 
     private static void PrintControlRecursive(dfControl control, string indent = "->", bool dissect = false)
     {
@@ -250,7 +261,7 @@ internal static class ModConfigMenu
             PrintControlRecursive(child, "--"+indent);
     }
 
-    private static void CopyAttributes<T>(this T self, T other) where T : dfControl
+    private static T CopyAttributes<T>(this T self, T other) where T : dfControl
     {
       if (self is dfButton button && other is dfButton otherButton)
       {
@@ -355,6 +366,8 @@ internal static class ModConfigMenu
 
       self.renderOrder       = other.renderOrder;
       self.isControlClipped  = other.isControlClipped;
+
+      return self;
     }
 
     private static void CreateModConfigButton(this PreOptionsMenuController preOptions, dfScrollPanel newOptionsPanel)
@@ -380,8 +393,7 @@ internal static class ModConfigMenu
           buttonsInMenu[i].Position = buttonsInMenu[i].Position.WithY(minY + gap * i);
 
         // Add the new button to the list
-        dfButton newButton = panel.AddControl<dfButton>();
-        newButton.CopyAttributes(prevButton);
+        dfButton newButton = panel.AddControl<dfButton>().CopyAttributes(prevButton);
         newButton.Text = _MOD_MENU_LABEL;
         newButton.name = _MOD_MENU_LABEL;
         newButton.Position = newButton.Position.WithY(maxY);  // Add it to the original position of the final button
@@ -482,23 +494,12 @@ internal static class ModConfigMenu
     // based on V-SyncCheckBoxPanel
     internal static dfPanel AddCheckBox(this dfScrollPanel panel, string label, PropertyChangedEventHandler<bool> onchange = null)
     {
-      dfPanel newCheckboxWrapperPanel = panel.AddControl<dfPanel>();
-      newCheckboxWrapperPanel.CopyAttributes(GetPrototypeCheckboxWrapperPanel());
-
-      dfPanel newCheckboxInnerPanel = newCheckboxWrapperPanel.AddControl<dfPanel>();
-      newCheckboxInnerPanel.CopyAttributes(GetPrototypeCheckboxInnerPanel());
-
-      dfCheckbox newCheckbox = newCheckboxInnerPanel.AddControl<dfCheckbox>();
-      newCheckbox.CopyAttributes(GetPrototypeCheckbox());
-
-      dfSprite newEmptyCheckboxSprite = newCheckbox.AddControl<dfSprite>();
-      newEmptyCheckboxSprite.CopyAttributes(GetPrototypeEmptyCheckboxSprite());
-
-      dfSprite newCheckedCheckboxSprite = newCheckbox.AddControl<dfSprite>();
-      newCheckedCheckboxSprite.CopyAttributes(GetPrototypeCheckedCheckboxSprite());
-
-      dfLabel newCheckboxLabel = newCheckboxInnerPanel.AddControl<dfLabel>();
-      newCheckboxLabel.CopyAttributes(GetPrototypeCheckboxLabel());
+      dfPanel    newCheckboxWrapperPanel  = panel.AddControl<dfPanel>().CopyAttributes(_CachedPrototypeCheckboxWrapperPanel);
+      dfPanel    newCheckboxInnerPanel    = newCheckboxWrapperPanel.AddControl<dfPanel>().CopyAttributes(_CachedPrototypeCheckboxInnerPanel);
+      dfCheckbox newCheckbox              = newCheckboxInnerPanel.AddControl<dfCheckbox>().CopyAttributes(_CachedPrototypeCheckbox);
+      dfSprite   newEmptyCheckboxSprite   = newCheckbox.AddControl<dfSprite>().CopyAttributes(_CachedPrototypeEmptyCheckboxSprite);
+      dfSprite   newCheckedCheckboxSprite = newCheckbox.AddControl<dfSprite>().CopyAttributes(_CachedPrototypeCheckedCheckboxSprite);
+      dfLabel    newCheckboxLabel         = newCheckboxInnerPanel.AddControl<dfLabel>().CopyAttributes(_CachedPrototypeCheckboxLabel);
 
       newCheckboxLabel.Text = label;
 
@@ -526,27 +527,13 @@ internal static class ModConfigMenu
     {
       bool hasInfo = (info != null && info.Count > 0 && info.Count == options.Count);
 
-      dfPanel newArrowboxWrapperPanel = panel.AddControl<dfPanel>();
-      newArrowboxWrapperPanel.CopyAttributes(hasInfo ? GetPrototypeInfoWrapperPanel() : GetPrototypeLeftRightWrapperPanel());
-      // newArrowboxWrapperPanel.Anchor = dfAnchorStyle.CenterVertical | dfAnchorStyle.CenterHorizontal;
-
-      dfPanel newArrowboxInnerPanel = newArrowboxWrapperPanel.AddControl<dfPanel>();
-      newArrowboxInnerPanel.CopyAttributes(hasInfo ? GetPrototypeInfoInnerPanel() : GetPrototypeLeftRightInnerPanel());
-
-      dfLabel newArrowSelectorLabel = newArrowboxInnerPanel.AddControl<dfLabel>();
-      newArrowSelectorLabel.CopyAttributes(hasInfo ? GetPrototypeInfoPanelLabel() : GetPrototypeLeftRightPanelLabel());
-
-      dfLabel newArrowSelectorSelection = newArrowboxInnerPanel.AddControl<dfLabel>();
-      newArrowSelectorSelection.CopyAttributes(hasInfo ? GetPrototypeInfoPanelSelection() : GetPrototypeLeftRightPanelSelection());
-
-      dfSprite newArrowLeftSprite = newArrowboxInnerPanel.AddControl<dfSprite>();
-      newArrowLeftSprite.CopyAttributes(hasInfo ? GetPrototypeInfoPanelLeftSprite() : GetPrototypeLeftRightPanelLeftSprite());
-
-      dfSprite newArrowRightSprite = newArrowboxInnerPanel.AddControl<dfSprite>();
-      newArrowRightSprite.CopyAttributes(hasInfo ? GetPrototypeInfoPanelRightSprite() : GetPrototypeLeftRightPanelRightSprite());
-
-      dfLabel newArrowInfoLabel = hasInfo ? newArrowboxWrapperPanel.AddControl<dfLabel>() : null;
-      newArrowInfoLabel?.CopyAttributes(GetPrototypeInfoInfoPanel());
+      dfPanel  newArrowboxWrapperPanel   = panel.AddControl<dfPanel>().CopyAttributes(hasInfo ? _CachedPrototypeInfoWrapperPanel : _CachedPrototypeLeftRightWrapperPanel);
+      dfPanel  newArrowboxInnerPanel     = newArrowboxWrapperPanel.AddControl<dfPanel>().CopyAttributes(hasInfo ? _CachedPrototypeInfoInnerPanel : _CachedPrototypeLeftRightInnerPanel);
+      dfLabel  newArrowSelectorLabel     = newArrowboxInnerPanel.AddControl<dfLabel>().CopyAttributes(hasInfo ? _CachedPrototypeInfoPanelLabel : _CachedPrototypeLeftRightPanelLabel);
+      dfLabel  newArrowSelectorSelection = newArrowboxInnerPanel.AddControl<dfLabel>().CopyAttributes(hasInfo ? _CachedPrototypeInfoPanelSelection : _CachedPrototypeLeftRightPanelSelection);
+      dfSprite newArrowLeftSprite        = newArrowboxInnerPanel.AddControl<dfSprite>().CopyAttributes(hasInfo ? _CachedPrototypeInfoPanelLeftSprite : _CachedPrototypeLeftRightPanelLeftSprite);
+      dfSprite newArrowRightSprite       = newArrowboxInnerPanel.AddControl<dfSprite>().CopyAttributes(hasInfo ? _CachedPrototypeInfoPanelRightSprite : _CachedPrototypeLeftRightPanelRightSprite);
+      dfLabel  newArrowInfoLabel         = hasInfo ? newArrowboxWrapperPanel.AddControl<dfLabel>().CopyAttributes(_CachedPrototypeInfoInfoPanel) : null;
 
       newArrowSelectorLabel.Text = label;
       newArrowSelectorSelection.Text = options[0];
@@ -590,14 +577,9 @@ internal static class ModConfigMenu
     // based on EditKeyboardBindingsButtonPanel
     internal static dfPanel AddButton(this dfScrollPanel panel, string label, Action<dfControl> onclick = null)
     {
-      dfPanel newButtonWrapperPanel = panel.AddControl<dfPanel>();
-      newButtonWrapperPanel.CopyAttributes(GetPrototypeButtonWrapperPanel());
-
-      dfPanel newButtonInnerPanel = newButtonWrapperPanel.AddControl<dfPanel>();
-      newButtonInnerPanel.CopyAttributes(GetPrototypeButtonInnerPanel());
-
-      dfButton newButton = newButtonInnerPanel.AddControl<dfButton>();
-      newButton.CopyAttributes(GetPrototypeButton());
+      dfPanel  newButtonWrapperPanel = panel.AddControl<dfPanel>().CopyAttributes(_CachedPrototypeButtonWrapperPanel);
+      dfPanel  newButtonInnerPanel   = newButtonWrapperPanel.AddControl<dfPanel>().CopyAttributes(_CachedPrototypeButtonInnerPanel);
+      dfButton newButton             = newButtonInnerPanel.AddControl<dfButton>().CopyAttributes(_CachedPrototypeButton);
 
       newButton.Text = label;
 
@@ -619,14 +601,9 @@ internal static class ModConfigMenu
     // based on PlayerOneLabelPanel
     internal static dfPanel AddLabel(this dfScrollPanel panel, string label, bool compact = true)
     {
-      dfPanel newLabelWrapperPanel = panel.AddControl<dfPanel>();
-      newLabelWrapperPanel.CopyAttributes(GetPrototypeLabelWrapperPanel());
-
-      dfPanel newLabelInnerPanel = newLabelWrapperPanel.AddControl<dfPanel>();
-      newLabelInnerPanel.CopyAttributes(GetPrototypeLabelInnerPanel());
-
-      dfLabel newLabel = newLabelInnerPanel.AddControl<dfLabel>();
-      newLabel.CopyAttributes(GetPrototypeLabel());
+      dfPanel newLabelWrapperPanel = panel.AddControl<dfPanel>().CopyAttributes(_CachedPrototypeLabelWrapperPanel);
+      dfPanel newLabelInnerPanel   = newLabelWrapperPanel.AddControl<dfPanel>().CopyAttributes(_CachedPrototypeLabelInnerPanel);
+      dfLabel newLabel             = newLabelInnerPanel.AddControl<dfLabel>().CopyAttributes(_CachedPrototypeLabel);
 
       Color color;
       newLabel.Text = label.ProcessColors(out color);
@@ -704,6 +681,9 @@ internal static class ModConfigMenu
           return;
 
         System.Diagnostics.Stopwatch panelBuildWatch = System.Diagnostics.Stopwatch.StartNew();
+
+        // Cache all the controls we'll be copying for faster access (needs to be done every time panels are rebuilt each run)
+        ReCacheControls();
 
         // Clear out all registered UI tabs, since we need to build everything fresh
         _RegisteredTabs.Clear();

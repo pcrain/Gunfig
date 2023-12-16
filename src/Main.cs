@@ -65,7 +65,6 @@ public class Initialisation : BaseUnityPlugin
                 ETGModConsole.Log($"allocated {(currentProcess.WorkingSet64 - oldMemory).ToString("N0")} bytes of memory along the way");
                 GunfigDebug.Init();
             }
-
         }
         catch (Exception e)
         {
