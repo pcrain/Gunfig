@@ -89,15 +89,15 @@ public class GunfigDebug
     // Log with the console only in debug mode
     public static void Log(object text)
     {
-    if (C.DEBUG_BUILD)
-      ETGModConsole.Log(text);
+        if (C.DEBUG_BUILD)
+            ETGModConsole.Log(text);
     }
 
     // Warn with the console only in debug mode
     public static void Warn(string text)
     {
-    if (C.DEBUG_BUILD)
-      ETGModConsole.Log($"<color=#ffffaaff>{text}</color>");
+        if (C.DEBUG_BUILD)
+            ETGModConsole.Log($"<color=#ffffaaff>{text}</color>");
     }
 }
 

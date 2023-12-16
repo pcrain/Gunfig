@@ -22,7 +22,7 @@ public partial class ModConfig
     internal Action<string, string>  _callback   = null;
   }
 
-  internal static Dictionary<string, ModConfig> _ActiveConfigs = new(); // dictionary of all mods using ModConfig to their respective configurations
+  internal static List<ModConfig> _ActiveConfigs               = new(); // list of all extant ModConfig instances
 
   private Dictionary<string, string> _options                  = new(); // dictionary of mod options as key value pairs
   private List<Item> _registeredOptions                        = new(); // list of options from which we can dynamically regenerate the options panel
@@ -34,10 +34,11 @@ public partial class ModConfig
   private bool _dirty = false; // whether we've been changed since last saving to disk
   private string _configFile = null; // the file on disk to which we're writing
   internal string _modName = null;
+  internal string _cleanModName = null;
 
   internal static void SaveActiveConfigsToDisk()
   {
-    foreach (ModConfig config in _ActiveConfigs.Values)
+    foreach (ModConfig config in _ActiveConfigs)
     {
       if (!config._dirty)
         continue;

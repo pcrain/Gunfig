@@ -51,16 +51,20 @@ public partial class ModConfig
   public static ModConfig GetConfigForMod(string modName)
   {
     string cleanModName = modName.ProcessColors(out Color _);
-    if (!_ActiveConfigs.ContainsKey(cleanModName))
+    foreach (ModConfig config in _ActiveConfigs)
     {
-      GunfigDebug.Log($"Creating new ModConfig instance for {cleanModName}");
-      ModConfig modConfig     = new ModConfig();
-      modConfig._modName      = modName;  // need to keep colors intact here
-      modConfig._configFile   = Path.Combine(SaveManager.SavePath, $"{cleanModName}.{ModConfigMenu._GUNFIG_EXTENSION}");
-      modConfig.LoadFromDisk();
-      _ActiveConfigs[cleanModName] = modConfig;
+      if (config._cleanModName == cleanModName)
+        return config;
     }
-    return _ActiveConfigs[cleanModName];
+
+    GunfigDebug.Log($"Creating new ModConfig instance for {cleanModName}");
+    ModConfig modConfig     = new ModConfig();
+    modConfig._modName      = modName;  // need to keep colors intact here
+    modConfig._cleanModName = cleanModName;  // need to keep colors intact here
+    modConfig._configFile   = Path.Combine(SaveManager.SavePath, $"{cleanModName}.{ModConfigMenu._GUNFIG_EXTENSION}");
+    modConfig.LoadFromDisk();
+    _ActiveConfigs.Add(modConfig);
+    return modConfig;
   }
 
   /// <summary>

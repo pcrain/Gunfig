@@ -217,8 +217,11 @@ internal static class ModConfigMenu
     private static dfLabel    _CachedPrototypeLabel                     = null;
 
     // References to dfControls are invalidated after each run is started, so we need to clear any cached values whenever panels are rebuilt
-    private static void ReCacheControls()
+    private static void ReCacheControlsAndTabs()
     {
+      // Clear out all registered UI tabs, since we need to build everything fresh
+      _RegisteredTabs.Clear();
+
       FullOptionsMenuController optionsMenu = GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu;
 
       _CachedPrototypeCheckboxWrapperPanel      = optionsMenu.TabVideo.Find<dfPanel>("V-SyncCheckBoxPanel");
@@ -398,8 +401,6 @@ internal static class ModConfigMenu
         newButton.name = _MOD_MENU_LABEL;
         newButton.Position = newButton.Position.WithY(maxY);  // Add it to the original position of the final button
         newButton.Click += (control, args) => {
-          // if (C.DEBUG_BUILD)
-          //   ETGModConsole.Log($"entered modded options menu");
           preOptions.ToggleToPanel(newOptionsPanel, true, force: true); // force true so it works even if the pre-options menu is invisible
         };
         newButton.MouseEnter += FocusControl;
@@ -422,11 +423,13 @@ internal static class ModConfigMenu
 
     internal static dfScrollPanel NewOptionsPanel(string name)
     {
+      FullOptionsMenuController optionsMenu = GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu;
+
       // Get a reference options panel
-      dfScrollPanel refPanel = GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.TabVideo;
+      dfScrollPanel refPanel = optionsMenu.TabVideo;
 
       // Add our options panel to the PauseMenuController and copy some basic attributes from our reference
-      dfScrollPanel newPanel = GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.m_panel.AddControl<dfScrollPanel>();
+      dfScrollPanel newPanel = optionsMenu.m_panel.AddControl<dfScrollPanel>();
         newPanel.UseScrollMomentum    = refPanel.UseScrollMomentum;
         newPanel.ScrollWithArrowKeys  = refPanel.ScrollWithArrowKeys;
         newPanel.Atlas                = refPanel.Atlas;
@@ -483,7 +486,7 @@ internal static class ModConfigMenu
       newPanel.Position            -= new Vector3(0, 50f, 0f);  //TODO: figure out why this offset is wrong in the first place
 
       newPanel.name = name;
-      newPanel.Enable();
+      newPanel.Enable();  // necessary to make sure our children are enabled when the panel is first loaderd
 
       // Add it to our known panels so we can make visible / invisible as necessary
       _RegisteredTabs.Add(newPanel);
@@ -622,15 +625,12 @@ internal static class ModConfigMenu
 
     private static void RegisterBraveMenuItem(this dfScrollPanel panel, dfControl item)
     {
-      if (panel.controls == null || panel.controls.Count < 2) // includes this object
-        return;
-      BraveOptionsMenuItem menuItem = item.GetComponent<BraveOptionsMenuItem>();
       for (int prevItemIndex = panel.Controls.Count - 2; prevItemIndex >= 0; prevItemIndex--)
       {
         dfControl prevItem = panel.controls[prevItemIndex];
         if (prevItem.GetComponent<BraveOptionsMenuItem>() is not BraveOptionsMenuItem prevMenuItem)
           continue;
-        menuItem.up = prevItem;
+        item.GetComponent<BraveOptionsMenuItem>().up = prevItem;
         prevMenuItem.down = item;
         break;
       }
@@ -654,9 +654,7 @@ internal static class ModConfigMenu
         if (child.GetComponent<ModConfigOption>() is not ModConfigOption option)
           continue;
         option.UpdateColors(menuItem, true); // make sure our colors our properly set on first load
-        child.PerformLayout();
       }
-      panel.PerformLayout();  // register all changes
     }
 
     private static void OpenSubMenu(dfScrollPanel panel)
@@ -683,18 +681,17 @@ internal static class ModConfigMenu
         System.Diagnostics.Stopwatch panelBuildWatch = System.Diagnostics.Stopwatch.StartNew();
 
         // Cache all the controls we'll be copying for faster access (needs to be done every time panels are rebuilt each run)
-        ReCacheControls();
+        ReCacheControlsAndTabs();
 
-        // Clear out all registered UI tabs, since we need to build everything fresh
-        _RegisteredTabs.Clear();
-
-        // Create the new modded options panel
+        // Create the new modded options panel and register the button on the pre-options menu
+        System.Diagnostics.Stopwatch mainmenuWatch = System.Diagnostics.Stopwatch.StartNew();
         dfScrollPanel newOptionsPanel = NewOptionsPanel(_MOD_MENU_TITLE);
+        preOptions.CreateModConfigButton(newOptionsPanel);
 
         // Add submenus for each active mod
-        foreach (string key in ModConfig._ActiveConfigs.Keys)
+        System.Diagnostics.Stopwatch allmodsWatch = System.Diagnostics.Stopwatch.StartNew();
+        foreach (ModConfig modConfig in ModConfig._ActiveConfigs)
         {
-          ModConfig modConfig = ModConfig._ActiveConfigs[key];
           dfScrollPanel modConfigPage = modConfig.RegenConfigPage();
           newOptionsPanel.AddButton(label: modConfig._modName).gameObject.AddComponent<ModConfigOption>().Setup(
             parentConfig: modConfig, key: null, values: ModConfig._DefaultValues,
@@ -704,11 +701,8 @@ internal static class ModConfigMenu
         // Finalize the options panel
         newOptionsPanel.Finalize();
 
-        // Register the new button on the PreOptions menu
-        preOptions.CreateModConfigButton(newOptionsPanel);
-
         // Dissect.DumpFieldsAndProperties<dfScrollPanel>(newOptionsPanel);
         // PrintControlRecursive(GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.m_panel);
-        panelBuildWatch.Stop(); System.Console.WriteLine($"    panel built in {panelBuildWatch.ElapsedMilliseconds} milliseconds");
+        panelBuildWatch.Stop(); GunfigDebug.Log($"  Options panels built in {panelBuildWatch.ElapsedMilliseconds} milliseconds");
     }
 }
