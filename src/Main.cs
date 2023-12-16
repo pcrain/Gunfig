@@ -81,8 +81,8 @@ public class GunfigDebug
         if (!C.DEBUG_BUILD)
             return; // do nothing in non-debug builds
 
-        ETGModConsole.Commands.AddGroup("herobrine", delegate (string[] args) {
-            ETGModConsole.Log($"  > Herobrine status: {(QoLConfig.Gunfig.Enabled(QoLConfig.HEROBRINE) ? "you're safe :D" : "he's around o.o")}");
+        ETGModConsole.Commands.AddGroup("cc", delegate (string[] args) {
+            // ETGModConsole.Log($"attempting to switch player two");
             });
     }
 

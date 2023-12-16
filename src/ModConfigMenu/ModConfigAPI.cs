@@ -6,6 +6,7 @@ namespace Gunfiguration;
     - can't back out of one level of menus at a time (vanilla behavior; maybe hook CloseAndMaybeApplyChangesWithPrompt)
 
    Unimportant stuff I probably won't do:
+    - double menu sounds are played when navigating to new pages due to onfocus events for buttons playing sounds (tricky to fix and barely noticeable)
     - haven't implemented progress / fill bars (not particularly useful outside vanilla volume controls, so not in a hurry to implement this)
     - haven't implemented sprites for options (e.g. like vanilla crosshair selection) (very hard, requires modifying sprite atlas, and it is minimally useful)
     - can't have first item of submenu be a label or it breaks focusing (vanilla ToggleToPanel() function assumes first control is selectable)
