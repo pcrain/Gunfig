@@ -1,0 +1,7 @@
+*~
+_*
+bin/*
+obj/*
+*.sublime-workspace
+*.csproj.new
+.todo
