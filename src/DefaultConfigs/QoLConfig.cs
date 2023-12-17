@@ -15,6 +15,8 @@ public static class QoLConfig
   public const string STATIC_CAMERA   = "Static Camera While Aiming";
   public const string MENU_SOUNDS     = "Better Menu Sounds";
   public const string HEROBRINE       = "Disable Herobrine";
+  public const string HEALTH_BARS     = "Show Enemy Health Bars";
+  public const string DAMAGE_NUMS     = "Show Damage Numbers";
 
   private static readonly Dictionary<string, string> _PLAYER_MAP = new() {
     { "Cultist",    "coopcultist" },
@@ -59,11 +61,21 @@ public static class QoLConfig
 
     Gunfig.AddToggle(key: HEROBRINE, label: HEROBRINE.Red());
 
+    Gunfig.AddToggle(key: HEALTH_BARS);
+
+    Gunfig.AddToggle(key: DAMAGE_NUMS);
+
     InitQoLHooks();
   }
 
   private static void InitQoLHooks()
   {
+    // Hook into PlayerController Awake to set up some QoL events
+    new Hook(
+      typeof(PlayerController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.Public),
+      typeof(QoLConfig).GetMethod("OnPlayerAwake", BindingFlags.Static | BindingFlags.NonPublic)
+      );
+
     // Make toggles play UI sounds when they're pressed
     new Hook(
       typeof(BraveOptionsMenuItem).GetMethod("ToggleCheckbox", BindingFlags.Instance | BindingFlags.NonPublic),
@@ -105,6 +117,12 @@ public static class QoLConfig
       typeof(CameraController).GetMethod("GetCoreOffset", BindingFlags.Instance | BindingFlags.NonPublic),
       typeof(QoLConfig).GetMethod("OnGetCoreOffset", BindingFlags.Static | BindingFlags.NonPublic)
       );
+  }
+
+  private static void OnPlayerAwake(Action<PlayerController> orig, PlayerController player)
+  {
+    orig(player);
+    player.OnAnyEnemyReceivedDamage += DoHealthEffects; // health bars and damage numbers (borrowed from Scouter)
   }
 
   private static void OnToggleCheckbox(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs args)
@@ -271,6 +289,41 @@ public static class QoLConfig
     if (Gunfig.Enabled(STATIC_CAMERA))
       return Vector2.zero;
     return orig(cam, currentBasePosition, isUpdate, allowAimOffset);
+  }
+
+  private static GameObject VFXHealthBar = null;
+  private static readonly int ScouterId = 821;
+  private static void DoHealthEffects(float damageAmount, bool fatal, HealthHaver target)
+  {
+    if (GameManager.Instance.PrimaryPlayer.HasPassiveItem(ScouterId))
+      return;
+    if (GameManager.Instance.CurrentGameType == GameManager.GameType.COOP_2_PLAYER && GameManager.Instance.SecondaryPlayer.HasPassiveItem(ScouterId))
+      return;
+
+    VFXHealthBar ??= (PickupObjectDatabase.GetById(ScouterId) as RatchetScouterItem).VFXHealthBar;
+
+    Vector3 worldPosition = target.transform.position;
+    float heightOffGround = 1f;
+
+    if (target.GetComponent<SpeculativeRigidbody>() is SpeculativeRigidbody body)
+    {
+      worldPosition = body.UnitCenter.ToVector3ZisY();
+      heightOffGround = worldPosition.y - body.UnitBottomCenter.y;
+      if (Gunfig.Enabled(HEALTH_BARS) && (bool)body.healthHaver && !body.healthHaver.HasHealthBar && !body.healthHaver.HasRatchetHealthBar && !body.healthHaver.IsBoss)
+      {
+        body.healthHaver.HasRatchetHealthBar = true;
+        UnityEngine.Object.Instantiate(VFXHealthBar).GetComponent<SimpleHealthBarController>().Initialize(body, body.healthHaver);
+      }
+    }
+    else if (target.GetComponent<AIActor>() is AIActor actor)
+    {
+      worldPosition = actor.CenterPosition.ToVector3ZisY();
+      if (actor.sprite)
+        heightOffGround = worldPosition.y - actor.sprite.WorldBottomCenter.y;
+    }
+
+    if (Gunfig.Enabled(DAMAGE_NUMS))
+      GameUIRoot.Instance.DoDamageNumber(worldPosition, heightOffGround, Mathf.Max(Mathf.RoundToInt(damageAmount), 1));
   }
 }
 
