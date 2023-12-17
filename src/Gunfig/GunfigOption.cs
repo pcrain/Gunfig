@@ -213,7 +213,7 @@ internal class GunfigOption : MonoBehaviour
     if (!string.IsNullOrEmpty(key))  // null or empty key == pseudo-option used for its callback only
     {
       this._defaultValue = values[0].ProcessColors(out Color _);
-      this._currentValue = this._parent.Get(this._lookupKey) ?? this._parent.Set(this._lookupKey, this._defaultValue);
+      this._currentValue = this._parent.Value(this._lookupKey) ?? this._parent.Set(this._lookupKey, this._defaultValue);
       this._pendingValue = this._currentValue;
     }
 

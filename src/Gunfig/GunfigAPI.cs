@@ -2,17 +2,17 @@ namespace Gunfiguration;
 
 /// <summary>
 /// Public portion of the Gunfig API. Basic usage:
-///   1) Call <c>GetConfigForMod(modName)</c> to get a unique <paramref name="Gunfig"/> instance and configuration page for modName.
-///   2) (Optional) Store the result of the above call to <c>GetConfigForMod()</c> in a static variable for use throughout your mod.
+///   1) Call <c>Gunfig.Get(modName)</c> to get a unique <paramref name="Gunfig"/> instance and configuration page for modName.
+///   2) (Optional) Store the result of the above call to <c>Gunfig.Get()</c> in a static variable for use throughout your mod.
 ///   3) Add options to your configuration page using <c>AddToggle()</c>, <c>AddScrollBox()</c>, <c>AddButton()</c>, and <c>AddLabel()</c>.
-///   4) Retrieve configured options anywhere in your code base using <c>Enabled()</c> or <c>Disabled()</c> for toggles and <c>Get()</c> for scrollboxes.
+///   4) Retrieve configured options anywhere in your code base using <c>Enabled()</c> or <c>Disabled()</c> for toggles and <c>Value()</c> for scrollboxes.
 /// See the included <see cref="QoLConfig"/> class for usage examples.
 /// </summary>
 public partial class Gunfig
 {
   /// <summary>
   /// Gunfig.Update determines
-  ///   1) when the new value for an option is actully set (i.e., when <c>Get()</c>, <c>Enabled()</c>, or <c>Disabled()</c> will return the new value),
+  ///   1) when the new value for an option is actully set (i.e., when <c>Value()</c>, <c>Enabled()</c>, or <c>Disabled()</c> will return the new value),
   ///   2) when the callback (if any) associated with the option should be triggered, and
   ///   3) when the new value for the option should be written back to the configuration file.
   /// For all update types except <c>Immediate</c>, if the player backs out of the menu without confirming changes, none of the above events will occur.
@@ -42,7 +42,7 @@ public partial class Gunfig
   /// </summary>
   /// <param name="modName">A name to uniquely identify your mod's configuration. The subpage in the MOD CONFIG menu will be set to this name.</param>
   /// <returns>A unique <paramref name="Gunfig"/> associated with the given <paramref name="modName"/>. This can be safely stored in a variable and retrieved for later use.</returns>
-  public static Gunfig GetConfigForMod(string modName)
+  public static Gunfig Get(string modName)
   {
     string cleanModName = modName.ProcessColors(out Color _);
     for (int i = 0; i < _ActiveConfigs.Count; ++i)
@@ -51,7 +51,7 @@ public partial class Gunfig
       if (config._cleanModName != cleanModName)
         continue;
       if (_ConfigAssemblies[i] != Assembly.GetCallingAssembly().FullName)
-        throw new FieldAccessException("Tried to access a Gunfig that doesn't belong to you!");
+        throw new AccessViolationException("Tried to access a Gunfig that doesn't belong to you!");
       return config;
     }
 
@@ -91,7 +91,7 @@ public partial class Gunfig
   /// <summary>
   /// Appends a new scrollbox option to the current <paramref name="Gunfig"/>'s config page.
   /// </summary>
-  /// <param name="key">The key for accessing the scrollbox's value through <c>Get()</c> and passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
+  /// <param name="key">The key for accessing the scrollbox's value through <c>Value()</c> and passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
   /// <param name="options">A list of strings determining the valid values for the scrollbox, displayed verbatim on the config page. Can be individually colorized using <see cref="WithColor()"/>.</param>
   /// <param name="label">The label displayed for the scrollbox on the config page. The scrollbox's <paramref name="key"/> will be displayed if no label is specified. Can be colorized using <see cref="WithColor()"/>.</param>
   /// <param name="callback">An optional Action to call when changes to the scrollbox are applied.
@@ -152,10 +152,9 @@ public partial class Gunfig
   /// </summary>
   /// <param name="string">The key for the option we're interested in.</param>
   /// <returns>The value of the option with key <paramref name="key"/>, or <c>null</c> if no such option exists.</returns>
-  public string Get(string key)
+  public string Value(string key)
   {
-    string val;
-    return this._options.TryGetValue(key, out val) ? val : null;
+    return this._options.TryGetValue(key, out string val) ? val : null;
   }
 
   /// <summary>
@@ -166,8 +165,7 @@ public partial class Gunfig
   /// <remarks>Will always return false for options that aren't toggles.</remarks>
   public bool Enabled(string key)
   {
-    string val;
-    return this._options.TryGetValue(key, out val) && (val == "1");
+    return this._options.TryGetValue(key, out string val) && (val == "1");
   }
 
   /// <summary>
@@ -178,8 +176,7 @@ public partial class Gunfig
   /// <remarks>Will always return false for options that aren't toggles.</remarks>
   public bool Disabled(string key)
   {
-    string val;
-    return this._options.TryGetValue(key, out val) && (val == "0");
+    return this._options.TryGetValue(key, out string val) && (val == "0");
   }
 }
 

@@ -5,7 +5,7 @@ namespace Gunfiguration;
 */
 internal static class QoLConfig
 {
-  // It is highly recommended to call GetConfigForMod() once for your mod and cache the result in a static variable.
+  // It is highly recommended to call Gunfig.Get() once for your mod and cache the result in a static variable.
   internal static Gunfig _Gunfig = null;
 
   // It is highly recommended to use constant strings for option keys, as it greatly simplifies working with options.
@@ -46,14 +46,14 @@ internal static class QoLConfig
   internal static void Init()
   {
     // Sets up a gunfig page named "Quality of Life", loads any existing "Quality of Life.gunfig" configuration from disk, and adds it to the Mod Config menu.
-    // It is recommended (but not necessary) to call GetConfigForMod() once and store the result in a static variable.
+    // It is recommended (but not necessary) to call Gunfig.Get() once and store the result in a static variable.
     // You can replace WithColor() with any color you want to change the appearance on the mod menu. Defaults to white if nothing is specified.
-    // Calling GetConfigForMod() with the same page name will always return the same Gunfig instance, ignoring color markup.
+    // Calling Gunfig.Get() with the same page name will always return the same Gunfig instance, ignoring color markup.
     // E.g., "Quality of Life".Red() will return the same page as "Quality of Life".Green() or simply "Quality of Life".
-    _Gunfig = Gunfig.GetConfigForMod(modName: "Quality of Life".WithColor(Color.white));
+    _Gunfig = Gunfig.Get(modName: "Quality of Life".WithColor(Color.white));
 
     // Build up a list of options for co-op players, highlight non-default (non-Cultist) characters in yellow, and add a scrollbox selector to the menu.
-    // We can get the value of scrollbox items later using Gunfig.Get().
+    // We can get the value of scrollbox items later using Gunfig.Value().
     List<string> players = new();
     foreach (string player in _PLAYER_MAP.Keys)
       players.Add((player == "Cultist") ? player : player.Yellow());
@@ -184,7 +184,7 @@ internal static class QoLConfig
 
   private static PlayerController OnGenerateCoopPlayer(Func<HutongGames.PlayMaker.Actions.ChangeCoopMode, PlayerController> orig, HutongGames.PlayMaker.Actions.ChangeCoopMode coop)
   {
-    coop.PlayerPrefabPath = $"Player{_PLAYER_MAP[_Gunfig.Get(PLAYER_TWO_CHAR)]}";
+    coop.PlayerPrefabPath = $"Player{_PLAYER_MAP[_Gunfig.Value(PLAYER_TWO_CHAR)]}";
     return orig(coop);
   }
 
@@ -195,7 +195,7 @@ internal static class QoLConfig
     if (!Foyer.DoIntroSequence && !Foyer.DoMainMenu)
       return; // disallow extended quickstarting if we're actively in the Breach
 
-    if (_Gunfig.Get(QUICKSTART) == "Vanilla")
+    if (_Gunfig.Value(QUICKSTART) == "Vanilla")
       return; // disallow extended quickstarting if the option isn't toggled on
 
     FinalIntroSequenceManager introManager = Foyer.Instance?.IntroDoer;
@@ -215,7 +215,7 @@ internal static class QoLConfig
     introManager.m_skipCycle = true;
     introManager.m_isDoingQuickStart = true;
 
-    if (InControl.InputManager.Devices.Count > 0 && _Gunfig.Get(QUICKSTART).Contains("Co-op"))
+    if (InControl.InputManager.Devices.Count > 0 && _Gunfig.Value(QUICKSTART).Contains("Co-op"))
       GameManager.Instance.StartCoroutine(DoCoopQuickStart(introManager));
     else
       introManager.StartCoroutine(introManager.DoQuickStart());
@@ -288,7 +288,7 @@ internal static class QoLConfig
 
   private static void GeneratePlayerTwo()
   {
-    GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[_Gunfig.Get(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
+    GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[_Gunfig.Value(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
     instantiatedCoopPlayer.SetActive(true);
     PlayerController extantCoopPlayer = instantiatedCoopPlayer.GetComponent<PlayerController>();
     extantCoopPlayer.PlayerIDX = 1;

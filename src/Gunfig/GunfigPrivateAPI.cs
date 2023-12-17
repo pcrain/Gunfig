@@ -49,7 +49,7 @@ public partial class Gunfig
   internal string _modName                    = null;  // the name of our mod, including any formatting
   internal string _cleanModName               = null;  // the name of our mod, without formatting
 
-  private Gunfig() { } // cannot construct Gunfig directly, must create / retrieve through GetConfigForMod()
+  private Gunfig() { } // cannot construct Gunfig directly, must create / retrieve through Gunfig.Get()
 
   internal static void SaveActiveConfigsToDisk()
   {
