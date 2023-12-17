@@ -19,7 +19,7 @@ manifesttemplate=`cat <<HERE
   "website_url": "https://github.com/pcrain/Gunfig",
   "description": "A menu API for modded Gungeon",
   "dependencies": [
-    "MtG_API-Mod_the_Gungeon_API-1.7.0",
+    "MtG_API-Mod_the_Gungeon_API-1.7.0"
   ]
 }
 HERE`
