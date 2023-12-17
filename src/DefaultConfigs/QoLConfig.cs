@@ -9,11 +9,11 @@ public static class QoLConfig
 {
   public static ModConfig Gunfig = null;
 
-  public const string MENU_SOUNDS     = "Better Menu Sounds";
   public const string FINGER_SAVER    = "Auto-fire Semi-Automatic Weapons";
   public const string PLAYER_TWO_CHAR = "Co-op Character";
   public const string QUICKSTART      = "Quick Start Behavior";
-  public const string AIM_CAMERA      = "Static Camera While Aiming";
+  public const string STATIC_CAMERA   = "Static Camera While Aiming";
+  public const string MENU_SOUNDS     = "Better Menu Sounds";
   public const string HEROBRINE       = "Disable Herobrine";
 
   private static readonly Dictionary<string, string> _PLAYER_MAP = new() {
@@ -55,7 +55,7 @@ public static class QoLConfig
 
     Gunfig.AddScrollBox(key: QUICKSTART, options: _QUICKSTART_OPTIONS, info: _QUICKSTART_DESCRIPTIONS);
 
-    Gunfig.AddToggle(key: AIM_CAMERA);
+    Gunfig.AddToggle(key: STATIC_CAMERA);
 
     Gunfig.AddToggle(key: HEROBRINE, label: HEROBRINE.Red());
 
@@ -100,6 +100,11 @@ public static class QoLConfig
       typeof(QoLConfig).GetMethod("OnGeneratePlayerIfNecessary", BindingFlags.Static | BindingFlags.NonPublic)
       );
 
+    // Static Camera
+    new Hook(
+      typeof(CameraController).GetMethod("GetCoreOffset", BindingFlags.Instance | BindingFlags.NonPublic),
+      typeof(QoLConfig).GetMethod("OnGetCoreOffset", BindingFlags.Static | BindingFlags.NonPublic)
+      );
   }
 
   private static void OnToggleCheckbox(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs args)
@@ -223,7 +228,7 @@ public static class QoLConfig
     GameManager.Instance.IsFoyer = false;
 
     GeneratePlayerOne();
-    yield return null;
+    yield return null;  // these yields are necessary to make sure Unity has a change to register the instantiation of each player
 
     GameManager.Instance.CurrentGameType = GameManager.GameType.COOP_2_PLAYER;
     GeneratePlayerTwo();
@@ -244,26 +249,28 @@ public static class QoLConfig
   {
     PlayerController playerController = GameManager.PlayerPrefabForNewGame.GetComponent<PlayerController>();
     GameStatsManager.Instance.BeginNewSession(playerController);
-    Debug.Log("before instantiating");
     GameObject instantiatedPlayer = UnityEngine.Object.Instantiate(GameManager.PlayerPrefabForNewGame, Vector3.zero, Quaternion.identity);
-    Debug.Log("after instantiating");
     GameManager.PlayerPrefabForNewGame = null;
     instantiatedPlayer.SetActive(true);
     PlayerController extantPlayer = instantiatedPlayer.GetComponent<PlayerController>();
     extantPlayer.PlayerIDX = 0;
     GameManager.Instance.PrimaryPlayer = extantPlayer;
-    Debug.Log("after finalizing");
   }
 
   private static void GeneratePlayerTwo()
   {
-    Debug.Log("before instantiating");
     GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[Gunfig.Get(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
-    Debug.Log("after instantiating");
     instantiatedCoopPlayer.SetActive(true);
     PlayerController extantCoopPlayer = instantiatedCoopPlayer.GetComponent<PlayerController>();
     extantCoopPlayer.PlayerIDX = 1;
     GameManager.Instance.SecondaryPlayer = extantCoopPlayer;
+  }
+
+  private static Vector2 OnGetCoreOffset(Func<CameraController, Vector2, bool, bool, Vector2> orig, CameraController cam, Vector2 currentBasePosition, bool isUpdate, bool allowAimOffset)
+  {
+    if (Gunfig.Enabled(STATIC_CAMERA))
+      return Vector2.zero;
+    return orig(cam, currentBasePosition, isUpdate, allowAimOffset);
   }
 }
 
