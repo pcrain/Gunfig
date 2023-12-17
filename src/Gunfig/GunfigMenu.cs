@@ -1,7 +1,7 @@
 namespace Gunfiguration;
 
 // Internal class for actually constructing menus. You should never need to use any of the functions in here directly.
-internal static class ModConfigMenu
+internal static class GunfigMenu
 {
     internal const string _GUNFIG_EXTENSION        = "gunfig";
 
@@ -29,67 +29,67 @@ internal static class ModConfigMenu
       // Make sure our menus are loaded in the main menu
       new Hook(
           typeof(MainMenuFoyerController).GetMethod("InitializeMainMenu", BindingFlags.Instance | BindingFlags.Public),
-          typeof(ModConfigMenu).GetMethod("InitializeMainMenu", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigMenu).GetMethod("InitializeMainMenu", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Make sure our menus are loaded in game
       new Hook(
           typeof(GameManager).GetMethod("Pause", BindingFlags.Instance | BindingFlags.Public),
-          typeof(ModConfigMenu).GetMethod("Pause", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigMenu).GetMethod("Pause", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Make sure our menus appear and disappear properly
       new Hook(
           typeof(FullOptionsMenuController).GetMethod("ToggleToPanel", BindingFlags.Instance | BindingFlags.Public),
-          typeof(ModConfigMenu).GetMethod("ToggleToPanel", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigMenu).GetMethod("ToggleToPanel", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Make sure we respect discarded changes
       new Hook(
           typeof(GameOptions).GetMethod("CompareSettings", BindingFlags.Static | BindingFlags.Public),
-          typeof(ModConfigMenu).GetMethod("CompareSettings", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigMenu).GetMethod("CompareSettings", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Custom checkbox events
       new Hook(
           typeof(BraveOptionsMenuItem).GetMethod("HandleCheckboxValueChanged", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(ModConfigMenu).GetMethod("HandleCheckboxValueChanged", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigMenu).GetMethod("HandleCheckboxValueChanged", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Custom arrowbox events
       new Hook(
           typeof(BraveOptionsMenuItem).GetMethod("HandleLeftRightArrowValueChanged", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(ModConfigMenu).GetMethod("HandleLeftRightArrowValueChanged", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigMenu).GetMethod("HandleLeftRightArrowValueChanged", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Custom button events
       new Hook(
           typeof(BraveOptionsMenuItem).GetMethod("DoSelectedAction", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(ModConfigMenu).GetMethod("DoSelectedAction", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigMenu).GetMethod("DoSelectedAction", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Update config options when menu choices are cancelled
       new Hook(
           typeof(FullOptionsMenuController).GetMethod("CloseAndRevertChanges", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(ModConfigOption).GetMethod("OnMenuCancel", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigOption).GetMethod("OnMenuCancel", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Update config options when menu choices are confirmed
       new Hook(
           typeof(FullOptionsMenuController).GetMethod("CloseAndApplyChanges", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(ModConfigOption).GetMethod("OnMenuConfirm", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigOption).GetMethod("OnMenuConfirm", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Update custom colors on focus gained
       new Hook(
           typeof(BraveOptionsMenuItem).GetMethod("DoFocus", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(ModConfigOption).GetMethod("OnGotFocus", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigOption).GetMethod("OnGotFocus", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Update custom colors on focus lost
       new Hook(
           typeof(BraveOptionsMenuItem).GetMethod("SetUnselectedColors", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(ModConfigOption).GetMethod("OnSetUnselectedColors", BindingFlags.Static | BindingFlags.NonPublic)
+          typeof(GunfigOption).GetMethod("OnSetUnselectedColors", BindingFlags.Static | BindingFlags.NonPublic)
           );
     }
 
@@ -145,7 +145,7 @@ internal static class ModConfigMenu
 
     private static bool CompareSettings(Func<GameOptions, GameOptions, bool> orig, GameOptions clone, GameOptions source)
     {
-      if (ModConfigOption.HasPendingChanges())
+      if (GunfigOption.HasPendingChanges())
         return false; // we have pending updates, so prompt to discard
       return orig(clone, source);
     }
@@ -374,7 +374,7 @@ internal static class ModConfigMenu
       return self;
     }
 
-    private static void CreateModConfigButton(this PreOptionsMenuController preOptions, dfScrollPanel newOptionsPanel)
+    private static void CreateGunfigButton(this PreOptionsMenuController preOptions, dfScrollPanel newOptionsPanel)
     {
         dfPanel panel        = preOptions.m_panel;
         dfButton prevButton  = panel.Find<dfButton>("AudioTab (1)");
@@ -652,7 +652,7 @@ internal static class ModConfigMenu
       {
         if (child.GetComponent<BraveOptionsMenuItem>() is not BraveOptionsMenuItem menuItem)
           continue;
-        if (child.GetComponent<ModConfigOption>() is not ModConfigOption option)
+        if (child.GetComponent<GunfigOption>() is not GunfigOption option)
           continue;
         option.UpdateColors(menuItem, true); // make sure our colors our properly set on first load
       }
@@ -687,17 +687,17 @@ internal static class ModConfigMenu
         // Create the new modded options panel and register the button on the pre-options menu
         System.Diagnostics.Stopwatch mainmenuWatch = System.Diagnostics.Stopwatch.StartNew();
         dfScrollPanel newOptionsPanel = NewOptionsPanel(_MOD_MENU_TITLE);
-        preOptions.CreateModConfigButton(newOptionsPanel);
+        preOptions.CreateGunfigButton(newOptionsPanel);
 
         // Add submenus for each active mod
         System.Diagnostics.Stopwatch allmodsWatch = System.Diagnostics.Stopwatch.StartNew();
-        foreach (ModConfig modConfig in ModConfig._ActiveConfigs)
+        foreach (Gunfig Gunfig in Gunfig._ActiveConfigs)
         {
-          dfScrollPanel modConfigPage = modConfig.RegenConfigPage();
-          modConfigPage.Finalize();
-          newOptionsPanel.AddButton(label: modConfig._modName).gameObject.AddComponent<ModConfigOption>().Setup(
-            parentConfig: modConfig, key: null, values: ModConfig._DefaultValues,
-            updateType: ModConfig.Update.Immediate, update: (_, _) => OpenSubMenu(modConfigPage));
+          dfScrollPanel gunfigPage = Gunfig.RegenConfigPage();
+          gunfigPage.Finalize();
+          newOptionsPanel.AddButton(label: Gunfig._modName).gameObject.AddComponent<GunfigOption>().Setup(
+            parentConfig: Gunfig, key: null, values: Gunfig._DefaultValues,
+            updateType: Gunfig.Update.Immediate, update: (_, _) => OpenSubMenu(gunfigPage));
         }
 
         // Finalize the options panel

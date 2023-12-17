@@ -1,7 +1,7 @@
 namespace Gunfiguration;
 
 // Internal portion of the Gunfig API. You should never need to use any of the functions in here directly.
-public partial class ModConfig
+public partial class Gunfig
 {
   /*
      Eventual planned QoL improvements to make, from most to least important:
@@ -27,7 +27,7 @@ public partial class ModConfig
   private class Item
   {
     internal ItemType                _itemType   = ItemType.Label;
-    internal ModConfig.Update        _updateType = ModConfig.Update.OnConfirm;
+    internal Gunfig.Update           _updateType = Gunfig.Update.OnConfirm;
     internal string                  _key        = null;
     internal string                  _label      = null;
     internal List<string>            _values     = null;
@@ -39,8 +39,8 @@ public partial class ModConfig
   internal static readonly List<string> _CheckedBoxValues   = new(){"1", "0"}; // options for default-checked checkboxes
   internal static readonly List<string> _DefaultValues      = new(){"1"};      // dummy option for things like buttons
 
-  internal static List<ModConfig> _ActiveConfigs    = new(); // list of all extant ModConfig instances
-  internal static List<string>    _ConfigAssemblies = new(); // list of assembly names associated with ModConfig instances, to avoid illegal accesses
+  internal static List<Gunfig> _ActiveConfigs    = new(); // list of all extant Gunfig instances
+  internal static List<string> _ConfigAssemblies = new(); // list of assembly names associated with Gunfig instances, to avoid illegal accesses
 
   private Dictionary<string, string> _options = new(); // dictionary of mod options as key value pairs
   private List<Item> _registeredOptions       = new(); // list of options from which we can dynamically regenerate the options panel
@@ -49,11 +49,11 @@ public partial class ModConfig
   internal string _modName                    = null;  // the name of our mod, including any formatting
   internal string _cleanModName               = null;  // the name of our mod, without formatting
 
-  private ModConfig() { } // cannot construct ModConfig directly, must create / retrieve through GetConfigForMod()
+  private Gunfig() { } // cannot construct Gunfig directly, must create / retrieve through GetConfigForMod()
 
   internal static void SaveActiveConfigsToDisk()
   {
-    foreach (ModConfig config in _ActiveConfigs)
+    foreach (Gunfig config in _ActiveConfigs)
     {
       if (!config._dirty)
         continue;
@@ -109,7 +109,7 @@ public partial class ModConfig
 
   internal dfScrollPanel RegenConfigPage()
   {
-    dfScrollPanel subOptionsPanel = ModConfigMenu.NewOptionsPanel($"{this._modName}");
+    dfScrollPanel subOptionsPanel = GunfigMenu.NewOptionsPanel($"{this._modName}");
     foreach (Item item in this._registeredOptions)
     {
       dfControl itemControl;
@@ -129,8 +129,8 @@ public partial class ModConfig
           itemControl = subOptionsPanel.AddArrowBox(label: item._label, options: item._values, info: item._info);
           break;
       }
-      if (item._itemType != ItemType.Label) // pure labels don't need a ModConfigOption and handle markup processing on site
-        itemControl.gameObject.AddComponent<ModConfigOption>().Setup(
+      if (item._itemType != ItemType.Label) // pure labels don't need a GunfigOption and handle markup processing on site
+        itemControl.gameObject.AddComponent<GunfigOption>().Setup(
           parentConfig: this, key: item._key, values: item._values, update: item._callback, updateType: item._updateType);
     }
     return subOptionsPanel;
@@ -147,8 +147,8 @@ public partial class ModConfig
   }
 }
 
-// Private portion of ModConfigHelpers
-public static partial class ModConfigHelpers
+// Private portion of GunfigHelpers
+public static partial class GunfigHelpers
 {
   internal const string MARKUP_DELIM = "@"; // "#" is used for localization strings, so we need something else
 

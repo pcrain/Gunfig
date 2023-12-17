@@ -52,7 +52,7 @@ public class Initialisation : BaseUnityPlugin
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
             Instance  = this;
-            ModConfigMenu.Init();
+            GunfigMenu.Init();
             QoLConfig.Init();
             watch.Stop();
             ETGModConsole.Log($"Initialized <color=#{ColorUtility.ToHtmlStringRGB(C.MOD_COLOR).ToLower()}>{C.MOD_NAME} v{C.MOD_VERSION}</color> in "+(watch.ElapsedMilliseconds/1000.0f)+" seconds");

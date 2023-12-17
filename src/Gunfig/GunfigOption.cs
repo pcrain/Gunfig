@@ -1,26 +1,26 @@
 namespace Gunfiguration;
 
 // Internal class for managing individual menu items. You should never need to use any of the functions in here directly.
-internal class ModConfigOption : MonoBehaviour
+internal class GunfigOption : MonoBehaviour
 {
-  private static List<ModConfigOption> _PendingUpdatesOnConfirm = new();
+  private static List<GunfigOption> _PendingUpdatesOnConfirm = new();
 
   private string _lookupKey                      = "";                        // key for looking up in our configuration file
   private string _defaultValue                   = "";                        // our default value if the key is not found in the configuration file
   private string _currentValue                   = "";                        // our current effective value, barring any pending changes
   private string _pendingValue                   = "";                        // our pending value after changes are applies
-  private ModConfig.Update _updateType           = ModConfig.Update.OnConfirm; // when to apply any pending changes
+  private Gunfig.Update _updateType              = Gunfig.Update.OnConfirm;   // when to apply any pending changes
   private List<string> _validValues              = new();                     // valid values for the option (auto populated with "true" and "false" for toggles)
   private Action<string, string> _onApplyChanges = null;                      // event handler for execution
   private dfControl _control                     = null;                      // the dfControl to which we're attached
-  private ModConfig _parent                      = null;                      // the ModConfig instance that's handling us
+  private Gunfig _parent                         = null;                      // the Gunfig instance that's handling us
   private Color _labelColor                      = Color.white;
   private List<Color> _optionColors              = new();
   private List<Color> _infoColors                = new();
 
   private static void OnMenuCancel(Action<FullOptionsMenuController> orig, FullOptionsMenuController menu) // hooked to call when menu choices are cancelled
   {
-    foreach (ModConfigOption option in _PendingUpdatesOnConfirm)
+    foreach (GunfigOption option in _PendingUpdatesOnConfirm)
       option.ResetMenuItemState();
     _PendingUpdatesOnConfirm.Clear();
     orig(menu);
@@ -28,13 +28,13 @@ internal class ModConfigOption : MonoBehaviour
 
   private static void OnMenuConfirm(Action<FullOptionsMenuController> orig, FullOptionsMenuController menu) // hooked to call when menu choices are confirmed
   {
-    foreach (ModConfigOption option in _PendingUpdatesOnConfirm)
+    foreach (GunfigOption option in _PendingUpdatesOnConfirm)
     {
-      if (option._updateType == ModConfig.Update.OnConfirm)
+      if (option._updateType == Gunfig.Update.OnConfirm)
         option.CommitPendingChanges();
       option._parent.Set(option._lookupKey, option._pendingValue);  // register change in the config handler even if the option's pending changes are deferred
     }
-    ModConfig.SaveActiveConfigsToDisk();  // save all committed changes
+    Gunfig.SaveActiveConfigsToDisk();  // save all committed changes
     _PendingUpdatesOnConfirm.Clear();
     orig(menu);
   }
@@ -42,14 +42,14 @@ internal class ModConfigOption : MonoBehaviour
   private static void OnGotFocus(Action<BraveOptionsMenuItem, dfControl, dfFocusEventArgs> orig, BraveOptionsMenuItem menuItem, dfControl control, dfFocusEventArgs args)
   {
     orig(menuItem, control, args);
-    if (menuItem.GetComponent<ModConfigOption>() is ModConfigOption option)
+    if (menuItem.GetComponent<GunfigOption>() is GunfigOption option)
       option.UpdateColors(menuItem, dim: false);
   }
 
   private static void OnSetUnselectedColors(Action<BraveOptionsMenuItem> orig, BraveOptionsMenuItem menuItem)
   {
     orig(menuItem);
-    if (menuItem.GetComponent<ModConfigOption>() is ModConfigOption option)
+    if (menuItem.GetComponent<GunfigOption>() is GunfigOption option)
       option.UpdateColors(menuItem, dim: true);
   }
 
@@ -63,10 +63,10 @@ internal class ModConfigOption : MonoBehaviour
 
     this._currentValue = this._pendingValue;  // set our current value to our pending value after applying changes in case we throw an exception and break the config
 
-    if (this._updateType == ModConfig.Update.Immediate) // register and save immediate changes to disk TODO: maybe be more conservative with this?
+    if (this._updateType == Gunfig.Update.Immediate) // register and save immediate changes to disk TODO: maybe be more conservative with this?
     {
       this._parent.Set(this._lookupKey, this._pendingValue);
-      ModConfig.SaveActiveConfigsToDisk();
+      Gunfig.SaveActiveConfigsToDisk();
     }
   }
 
@@ -90,7 +90,7 @@ internal class ModConfigOption : MonoBehaviour
 
   private void OnControlChanged()
   {
-    if (this._updateType == ModConfig.Update.Immediate)
+    if (this._updateType == Gunfig.Update.Immediate)
       CommitPendingChanges();
     else if (!_PendingUpdatesOnConfirm.Contains(this))
       _PendingUpdatesOnConfirm.Add(this);
@@ -145,7 +145,7 @@ internal class ModConfigOption : MonoBehaviour
     if (menuItem.buttonControl is dfButton button)
     {
       if (addHandlers)
-        this._control.gameObject.GetOrAddComponent<ModConfigMenu.CustomButtonHandler>().onClicked += OnButtonClicked;
+        this._control.gameObject.GetOrAddComponent<GunfigMenu.CustomButtonHandler>().onClicked += OnButtonClicked;
     }
     if (menuItem.checkboxChecked is dfControl checkBox)
     {
@@ -155,7 +155,7 @@ internal class ModConfigOption : MonoBehaviour
         checkBoxUnchecked.IsVisible = true;
       menuItem.m_selectedIndex = isChecked ? 1 : 0;
       if (addHandlers)
-        this._control.gameObject.GetOrAddComponent<ModConfigMenu.CustomCheckboxHandler>().onChanged += OnControlChanged;
+        this._control.gameObject.GetOrAddComponent<GunfigMenu.CustomCheckboxHandler>().onChanged += OnControlChanged;
     }
     if ((menuItem.selectedLabelControl is dfLabel settingLabel) && menuItem.labelOptions != null)
     {
@@ -171,7 +171,7 @@ internal class ModConfigOption : MonoBehaviour
         break;
       }
       if (addHandlers)
-        this._control.gameObject.GetOrAddComponent<ModConfigMenu.CustomLeftRightArrowHandler>().onChanged += OnControlChanged;
+        this._control.gameObject.GetOrAddComponent<GunfigMenu.CustomLeftRightArrowHandler>().onChanged += OnControlChanged;
     }
 
     UpdateColors(menuItem, dim: true);
@@ -194,13 +194,13 @@ internal class ModConfigOption : MonoBehaviour
 
   internal static bool HasPendingChanges()
   {
-    foreach (ModConfigOption option in _PendingUpdatesOnConfirm)
+    foreach (GunfigOption option in _PendingUpdatesOnConfirm)
       if (option._pendingValue != option._currentValue)
         return true;
     return false;
   }
 
-  internal void Setup(ModConfig parentConfig, string key, List<string> values, Action<string, string> update, ModConfig.Update updateType = ModConfig.Update.OnConfirm)
+  internal void Setup(Gunfig parentConfig, string key, List<string> values, Action<string, string> update, Gunfig.Update updateType = Gunfig.Update.OnConfirm)
   {
     this._control        = base.GetComponent<dfControl>();
     this._parent         = parentConfig;

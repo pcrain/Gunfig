@@ -6,7 +6,7 @@ namespace Gunfiguration;
 internal static class QoLConfig
 {
   // It is highly recommended to call GetConfigForMod() once for your mod and cache the result in a static variable.
-  internal static ModConfig Gunfig = null;
+  internal static Gunfig _Gunfig = null;
 
   // It is highly recommended to use constant strings for option keys, as it greatly simplifies working with options.
   internal const string FINGER_SAVER    = "Auto-fire Semi-Automatic Weapons";
@@ -48,32 +48,32 @@ internal static class QoLConfig
     // Sets up a gunfig page named "Quality of Life", loads any existing "Quality of Life.gunfig" configuration from disk, and adds it to the Mod Config menu.
     // It is recommended (but not necessary) to call GetConfigForMod() once and store the result in a static variable.
     // You can replace WithColor() with any color you want to change the appearance on the mod menu. Defaults to white if nothing is specified.
-    // Calling GetConfigForMod() with the same page name will always return the same ModConfig instance, ignoring color markup.
+    // Calling GetConfigForMod() with the same page name will always return the same Gunfig instance, ignoring color markup.
     // E.g., "Quality of Life".Red() will return the same page as "Quality of Life".Green() or simply "Quality of Life".
-    Gunfig = ModConfig.GetConfigForMod(modName: "Quality of Life".WithColor(Color.white));
+    _Gunfig = Gunfig.GetConfigForMod(modName: "Quality of Life".WithColor(Color.white));
 
     // Build up a list of options for co-op players, highlight non-default (non-Cultist) characters in yellow, and add a scrollbox selector to the menu.
     // We can get the value of scrollbox items later using Gunfig.Get().
     List<string> players = new();
     foreach (string player in _PLAYER_MAP.Keys)
       players.Add((player == "Cultist") ? player : player.Yellow());
-    Gunfig.AddScrollBox(key: PLAYER_TWO_CHAR, options: players);
+    _Gunfig.AddScrollBox(key: PLAYER_TWO_CHAR, options: players);
 
     // Add another scrollbox selector with description text for each item.
-    Gunfig.AddScrollBox(key: QUICKSTART, options: _QUICKSTART_OPTIONS, info: _QUICKSTART_DESCRIPTIONS);
+    _Gunfig.AddScrollBox(key: QUICKSTART, options: _QUICKSTART_OPTIONS, info: _QUICKSTART_DESCRIPTIONS);
 
     // Simple toggles can be created with extremely minimal setup! We can get toggle options later with, e.g., Gunfig.Enabled() or Gunfig.Disabled().
-    Gunfig.AddToggle(key: FINGER_SAVER);
-    Gunfig.AddToggle(key: STATIC_CAMERA);
-    Gunfig.AddToggle(key: HEALTH_BARS);
-    Gunfig.AddToggle(key: DAMAGE_NUMS);
+    _Gunfig.AddToggle(key: FINGER_SAVER);
+    _Gunfig.AddToggle(key: STATIC_CAMERA);
+    _Gunfig.AddToggle(key: HEALTH_BARS);
+    _Gunfig.AddToggle(key: DAMAGE_NUMS);
 
     // Add a toggle that goes into effect immediately without awaiting confirmation from the player.
-    Gunfig.AddToggle(key: MENU_SOUNDS, updateType: ModConfig.Update.Immediate);
+    _Gunfig.AddToggle(key: MENU_SOUNDS, updateType: Gunfig.Update.Immediate);
 
     // Add a button with a custom callback when processed. Buttons always trigger their callbacks immediately when pressed.
     // Note that we have to explicitly specify a label to color the button text Red, as we cannot add colors to the key.
-    Gunfig.AddButton(key: HEROBRINE, label: HEROBRINE.Red(),
+    _Gunfig.AddButton(key: HEROBRINE, label: HEROBRINE.Red(),
       callback: (optionKey, optionValue) => ETGModConsole.Log($"Clicked the {optionKey} button...but you can't disable Herobrine :/"));
 
     // See the hooks and functions throughout the remainder of this file to see examples of how configuration options are used in practice.
@@ -140,14 +140,14 @@ internal static class QoLConfig
   private static void OnToggleCheckbox(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs args)
   {
     orig(item, control, args);
-    if (Gunfig.Enabled(MENU_SOUNDS))
+    if (_Gunfig.Enabled(MENU_SOUNDS))
       AkSoundEngine.PostEvent("Play_UI_menu_select_01", item.gameObject);
   }
 
   private static void OnHandleFillbarValueChanged(Action<BraveOptionsMenuItem> orig, BraveOptionsMenuItem item)
   {
     orig(item);
-    if (Gunfig.Enabled(MENU_SOUNDS))
+    if (_Gunfig.Enabled(MENU_SOUNDS))
       AkSoundEngine.PostEvent("Play_UI_menu_select_01", item.gameObject);
   }
 
@@ -177,14 +177,14 @@ internal static class QoLConfig
 
   private static float OverrideSemiAutoCooldown(PlayerController pc)
   {
-    if (Gunfig.Enabled(FINGER_SAVER))
+    if (_Gunfig.Enabled(FINGER_SAVER))
         return 0f; // replace the value we're checking against with 0f to completely remove semi-automatic fake cooldown
     return BraveInput.ControllerFakeSemiAutoCooldown; // return the original value
   }
 
   private static PlayerController OnGenerateCoopPlayer(Func<HutongGames.PlayMaker.Actions.ChangeCoopMode, PlayerController> orig, HutongGames.PlayMaker.Actions.ChangeCoopMode coop)
   {
-    coop.PlayerPrefabPath = $"Player{_PLAYER_MAP[Gunfig.Get(PLAYER_TWO_CHAR)]}";
+    coop.PlayerPrefabPath = $"Player{_PLAYER_MAP[_Gunfig.Get(PLAYER_TWO_CHAR)]}";
     return orig(coop);
   }
 
@@ -195,7 +195,7 @@ internal static class QoLConfig
     if (!Foyer.DoIntroSequence && !Foyer.DoMainMenu)
       return; // disallow extended quickstarting if we're actively in the Breach
 
-    if (Gunfig.Get(QUICKSTART) == "Vanilla")
+    if (_Gunfig.Get(QUICKSTART) == "Vanilla")
       return; // disallow extended quickstarting if the option isn't toggled on
 
     FinalIntroSequenceManager introManager = Foyer.Instance?.IntroDoer;
@@ -215,7 +215,7 @@ internal static class QoLConfig
     introManager.m_skipCycle = true;
     introManager.m_isDoingQuickStart = true;
 
-    if (InControl.InputManager.Devices.Count > 0 && Gunfig.Get(QUICKSTART).Contains("Co-op"))
+    if (InControl.InputManager.Devices.Count > 0 && _Gunfig.Get(QUICKSTART).Contains("Co-op"))
       GameManager.Instance.StartCoroutine(DoCoopQuickStart(introManager));
     else
       introManager.StartCoroutine(introManager.DoQuickStart());
@@ -288,7 +288,7 @@ internal static class QoLConfig
 
   private static void GeneratePlayerTwo()
   {
-    GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[Gunfig.Get(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
+    GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[_Gunfig.Get(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
     instantiatedCoopPlayer.SetActive(true);
     PlayerController extantCoopPlayer = instantiatedCoopPlayer.GetComponent<PlayerController>();
     extantCoopPlayer.PlayerIDX = 1;
@@ -297,7 +297,7 @@ internal static class QoLConfig
 
   private static Vector2 OnGetCoreOffset(Func<CameraController, Vector2, bool, bool, Vector2> orig, CameraController cam, Vector2 currentBasePosition, bool isUpdate, bool allowAimOffset)
   {
-    if (Gunfig.Enabled(STATIC_CAMERA))
+    if (_Gunfig.Enabled(STATIC_CAMERA))
       return Vector2.zero;
     return orig(cam, currentBasePosition, isUpdate, allowAimOffset);
   }
@@ -320,7 +320,7 @@ internal static class QoLConfig
     {
       worldPosition = body.UnitCenter.ToVector3ZisY();
       heightOffGround = worldPosition.y - body.UnitBottomCenter.y;
-      if (Gunfig.Enabled(HEALTH_BARS) && (bool)body.healthHaver && !body.healthHaver.HasHealthBar && !body.healthHaver.HasRatchetHealthBar && !body.healthHaver.IsBoss)
+      if (_Gunfig.Enabled(HEALTH_BARS) && (bool)body.healthHaver && !body.healthHaver.HasHealthBar && !body.healthHaver.HasRatchetHealthBar && !body.healthHaver.IsBoss)
       {
         body.healthHaver.HasRatchetHealthBar = true;
         UnityEngine.Object.Instantiate(VFXHealthBar).GetComponent<SimpleHealthBarController>().Initialize(body, body.healthHaver);
@@ -333,7 +333,7 @@ internal static class QoLConfig
         heightOffGround = worldPosition.y - actor.sprite.WorldBottomCenter.y;
     }
 
-    if (Gunfig.Enabled(DAMAGE_NUMS))
+    if (_Gunfig.Enabled(DAMAGE_NUMS))
       GameUIRoot.Instance.DoDamageNumber(worldPosition, heightOffGround, Mathf.Max(Mathf.RoundToInt(damageAmount), 1));
   }
 }
