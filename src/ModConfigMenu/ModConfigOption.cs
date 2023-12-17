@@ -61,7 +61,10 @@ internal class ModConfigOption : MonoBehaviour
     if (menuItem.selectedLabelControl != null)
       menuItem.selectedLabelControl.Color = this._optionColors[menuItem.m_selectedIndex % this._optionColors.Count].Dim(dim);
     if (menuItem.infoControl != null)
+    {
+      menuItem.infoControl.Text = menuItem.infoOptions[menuItem.m_selectedIndex % this._infoColors.Count];
       menuItem.infoControl.Color = this._infoColors[menuItem.m_selectedIndex % this._infoColors.Count].Dim(dim);
+    }
   }
 
   public static bool HasPendingChanges()
