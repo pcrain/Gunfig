@@ -1,22 +1,12 @@
 namespace Gunfiguration;
 
-/*
-   Known Issues:
-    - frozen config options when returning to the main menu
-
-   QoL improvements to make, from most to least important:
-    - can't dynamically enable / disable options at runtime (must restart the game)
-    - can't back out of one level of menus at a time (vanilla behavior; maybe hook CloseAndMaybeApplyChangesWithPrompt)
-
-   Unimportant stuff I probably won't do:
-    - double menu sounds are played when navigating to new pages due to onfocus events for buttons playing sounds (tricky to fix and barely noticeable)
-    - haven't implemented progress / fill bars (not particularly useful outside vanilla volume controls, so not in a hurry to implement this)
-    - haven't implemented sprites for options (e.g. like vanilla crosshair selection) (very hard, requires modifying sprite atlas, and it is minimally useful)
-    - can't have first item of submenu be a label or it breaks focusing (vanilla ToggleToPanel() function assumes first control is selectable)
-*/
-
 /// <summary>
-/// Public portion of ModConfig API
+/// Public portion of the Gunfig API. Basic usage:
+///   1) Call <c>GetConfigForMod(modName)</c> to get a unique <paramref name="ModConfig"/> instance and configuration page for modName.
+///   2) (Optional) Store the result of the above call to <c>GetConfigForMod()</c> in a static variable for use throughout your mod.
+///   3) Add options to your configuration page using <c>AddToggle()</c>, <c>AddScrollBox()</c>, <c>AddButton()</c>, and <c>AddLabel()</c>.
+///   4) Retrieve configured options anywhere in your code base using <c>Enabled()</c> or <c>Disabled()</c> for toggles and <c>Get()</c> for scrollboxes.
+/// See the included <see cref="QoLConfig"/> class for usage examples.
 /// </summary>
 public partial class ModConfig
 {
@@ -42,7 +32,7 @@ public partial class ModConfig
     /// <summary>
     /// Writes the new option's value to the gunfig file when the options menu is closed with changes confirmed.
     /// Does not set the option's value in memory or trigger any callbacks.
-    /// Discards the change if the menu is closed without confirming changes.
+    /// Discards the change without writing to the gunfig file if the menu is closed without confirming changes.
     /// </summary>
     OnRestart,
   }
@@ -74,7 +64,7 @@ public partial class ModConfig
   /// <summary>
   /// Appends a new togglable option to the current <paramref name="ModConfig"/>'s config page.
   /// </summary>
-  /// <param name="key">The key for accessing the toggle's value through <c>GetBool()</c> and passed as the first parameter to the toggle's <paramref name="callback"/>.</param>
+  /// <param name="key">The key for accessing the toggle's value through <c>GetBool()</c> and passed as the first parameter to the toggle's <paramref name="callback"/>. Must NOT be formatted.</param>
   /// <param name="enabled">Whether the toggle should be enabled by default if no prior configuration has been set.</param>
   /// <param name="label">The label displayed for the toggle on the config page. The toggle's <paramref name="key"/> will be displayed if no label is specified. Can be colorized using <see cref="WithColor()"/>.</param>
   /// <param name="callback">An optional Action to call when changes to the toggle are applied.
@@ -96,7 +86,7 @@ public partial class ModConfig
   /// <summary>
   /// Appends a new scrollbox option to the current <paramref name="ModConfig"/>'s config page.
   /// </summary>
-  /// <param name="key">The key for accessing the scrollbox's value through <c>Get()</c> and passed as the first parameter to the scrollbox's <paramref name="callback"/>.</param>
+  /// <param name="key">The key for accessing the scrollbox's value through <c>Get()</c> and passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
   /// <param name="options">A list of strings determining the valid values for the scrollbox, displayed verbatim on the config page. Can be individually colorized using <see cref="WithColor()"/>.</param>
   /// <param name="label">The label displayed for the scrollbox on the config page. The scrollbox's <paramref name="key"/> will be displayed if no label is specified. Can be colorized using <see cref="WithColor()"/>.</param>
   /// <param name="callback">An optional Action to call when changes to the scrollbox are applied.
@@ -120,7 +110,7 @@ public partial class ModConfig
   /// <summary>
   /// Appends a new button to the current <paramref name="ModConfig"/>'s config page.
   /// </summary>
-  /// <param name="key">A unique key associated with the button, passed as the first parameter to the scrollbox's <paramref name="callback"/>.</param>
+  /// <param name="key">A unique key associated with the button, passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
   /// <param name="label">The label displayed for the button on the config page. The button's <paramref name="key"/> will be displayed if no label is specified. Can be colorized using <see cref="WithColor()"/>.</param>
   /// <param name="callback">An optional Action to call when the button is pressed.
   /// The callback's first argument will be the button's <paramref name="key"/>.
@@ -186,4 +176,22 @@ public partial class ModConfig
     string val;
     return this._options.TryGetValue(key, out val) && (val == "0");
   }
+}
+
+/// <summary>
+/// Helper functions for adding formatting to menu items. Formatting can be applied to any string OTHER THAN OPTION KEYS, which must not have formatting.
+/// </summary>
+public static partial class ModConfigHelpers
+{
+  // Add color formatting to a string for use within option menus
+  public static string WithColor(this string s, Color c) => $"{MARKUP_DELIM}{ColorUtility.ToHtmlStringRGB(c)}{s}";
+  // Convenience extensions for basic colors
+  public static string Red(this string s)                => s.WithColor(Color.red);
+  public static string Green(this string s)              => s.WithColor(Color.green);
+  public static string Blue(this string s)               => s.WithColor(Color.blue);
+  public static string Yellow(this string s)             => s.WithColor(Color.yellow);
+  public static string Cyan(this string s)               => s.WithColor(Color.cyan);
+  public static string Magenta(this string s)            => s.WithColor(Color.magenta);
+  public static string Gray(this string s)               => s.WithColor(Color.gray);
+  public static string White(this string s)              => s.WithColor(Color.white);
 }

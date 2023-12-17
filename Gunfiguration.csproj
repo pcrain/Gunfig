@@ -44,7 +44,6 @@
     <Compile Include="src\ModConfigMenu\ModConfigOption.cs"/>
     <Compile Include="src\ModConfigMenu\ModConfigPrivateAPI.cs"/>
     <Compile Include="src\ModConfigMenu\ModConfigMenu.cs"/>
-    <Compile Include="src\ModConfigMenu\ModConfigHelpers.cs"/>
     <Compile Include="src\ModConfigMenu\ModConfigAPI.cs"/>
     <Compile Include="src\Main.cs"/>
     <Reference Include="UnityEngine.ClothModule"/>

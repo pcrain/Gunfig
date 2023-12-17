@@ -1,22 +1,35 @@
 namespace Gunfiguration;
 
 /*
-   Known Issues:
-    - none :D
+  Configuration options for general quality-of-life changes, documented for API reference.
 */
-
-public static class QoLConfig
+internal static class QoLConfig
 {
-  public static ModConfig Gunfig = null;
+  // It is highly recommended to call GetConfigForMod() once for your mod and cache the result in a static variable.
+  internal static ModConfig Gunfig = null;
 
-  public const string FINGER_SAVER    = "Auto-fire Semi-Automatic Weapons";
-  public const string PLAYER_TWO_CHAR = "Co-op Character";
-  public const string QUICKSTART      = "Quick Start Behavior";
-  public const string STATIC_CAMERA   = "Static Camera While Aiming";
-  public const string MENU_SOUNDS     = "Better Menu Sounds";
-  public const string HEROBRINE       = "Disable Herobrine";
-  public const string HEALTH_BARS     = "Show Enemy Health Bars";
-  public const string DAMAGE_NUMS     = "Show Damage Numbers";
+  // It is highly recommended to use constant strings for option keys, as it greatly simplifies working with options.
+  internal const string FINGER_SAVER    = "Auto-fire Semi-Automatic Weapons";
+  internal const string PLAYER_TWO_CHAR = "Co-op Character";
+  internal const string QUICKSTART      = "Quick Start Behavior";
+  internal const string STATIC_CAMERA   = "Static Camera While Aiming";
+  internal const string MENU_SOUNDS     = "Better Menu Sounds";
+  internal const string HEROBRINE       = "Disable Herobrine";
+  internal const string HEALTH_BARS     = "Show Enemy Health Bars";
+  internal const string DAMAGE_NUMS     = "Show Damage Numbers";
+
+  // Note the formatting applied to individual labels. Formatting can be applied to all menus strings, but NOT to option keys.
+  private static readonly List<string> _QUICKSTART_OPTIONS = new() {
+    "Vanilla",
+    "Extended".Yellow(),
+    "Extended + Co-op".Yellow(),
+  };
+
+  private static readonly List<string> _QUICKSTART_DESCRIPTIONS = new() {
+    "Vanilla quickstart behavior".Green(),
+    "Allows quickstarting on the main menu\nafter the title sequence".Green(),
+    "Quick start will automatically start co-op\nif a second controller is plugged in".Green(),
+  };
 
   private static readonly Dictionary<string, string> _PLAYER_MAP = new() {
     { "Cultist",    "coopcultist" },
@@ -30,41 +43,40 @@ public static class QoLConfig
     { "Gunslinger", "gunslinger"  },
   };
 
-  private static readonly List<string> _QUICKSTART_OPTIONS = new() {
-    "Vanilla",
-    "Extended".Yellow(),
-    "Extended + Co-op".Yellow(),
-  };
-
-  private static readonly List<string> _QUICKSTART_DESCRIPTIONS = new() {
-    "Vanilla quickstart behavior".Green(),
-    "Allows quickstarting on the main menu\nafter the title sequence".Green(),
-    "Quick start will automatically start co-op\nif a second controller is plugged in".Green(),
-  };
-
-  public static void Init()
+  internal static void Init()
   {
-    Gunfig = ModConfig.GetConfigForMod("Quality of Life");
+    // Sets up a gunfig page named "Quality of Life", loads any existing "Quality of Life.gunfig" configuration from disk, and adds it to the Mod Config menu.
+    // It is recommended (but not necessary) to call GetConfigForMod() once and store the result in a static variable.
+    // You can replace WithColor() with any color you want to change the appearance on the mod menu. Defaults to white if nothing is specified.
+    // Calling GetConfigForMod() with the same page name will always return the same ModConfig instance, ignoring color markup.
+    // E.g., "Quality of Life".Red() will return the same page as "Quality of Life".Green() or simply "Quality of Life".
+    Gunfig = ModConfig.GetConfigForMod(modName: "Quality of Life".WithColor(Color.white));
 
-    Gunfig.AddToggle(key: MENU_SOUNDS, updateType: ModConfig.Update.Immediate);
-
-    Gunfig.AddToggle(key: FINGER_SAVER);
-
+    // Build up a list of options for co-op players, highlight non-default (non-Cultist) characters in yellow, and add a scrollbox selector to the menu.
+    // We can get the value of scrollbox items later using Gunfig.Get().
     List<string> players = new();
     foreach (string player in _PLAYER_MAP.Keys)
       players.Add((player == "Cultist") ? player : player.Yellow());
     Gunfig.AddScrollBox(key: PLAYER_TWO_CHAR, options: players);
 
+    // Add another scrollbox selector with description text for each item.
     Gunfig.AddScrollBox(key: QUICKSTART, options: _QUICKSTART_OPTIONS, info: _QUICKSTART_DESCRIPTIONS);
 
+    // Simple toggles can be created with extremely minimal setup! We can get toggle options later with, e.g., Gunfig.Enabled() or Gunfig.Disabled().
+    Gunfig.AddToggle(key: FINGER_SAVER);
     Gunfig.AddToggle(key: STATIC_CAMERA);
-
-    Gunfig.AddToggle(key: HEROBRINE, label: HEROBRINE.Red());
-
     Gunfig.AddToggle(key: HEALTH_BARS);
-
     Gunfig.AddToggle(key: DAMAGE_NUMS);
 
+    // Add a toggle that goes into effect immediately without awaiting confirmation from the player.
+    Gunfig.AddToggle(key: MENU_SOUNDS, updateType: ModConfig.Update.Immediate);
+
+    // Add a button with a custom callback when processed. Buttons always trigger their callbacks immediately when pressed.
+    // Note that we have to explicitly specify a label to color the button text Red, as we cannot add colors to the key.
+    Gunfig.AddButton(key: HEROBRINE, label: HEROBRINE.Red(),
+      callback: (optionKey, optionValue) => ETGModConsole.Log($"Clicked the {optionKey} button...but you can't disable Herobrine :/"));
+
+    // See the hooks and functions throughout the remainder of this file to see examples of how configuration options are used in practice.
     InitQoLHooks();
   }
 
@@ -173,7 +185,6 @@ public static class QoLConfig
   private static PlayerController OnGenerateCoopPlayer(Func<HutongGames.PlayMaker.Actions.ChangeCoopMode, PlayerController> orig, HutongGames.PlayMaker.Actions.ChangeCoopMode coop)
   {
     coop.PlayerPrefabPath = $"Player{_PLAYER_MAP[Gunfig.Get(PLAYER_TWO_CHAR)]}";
-    ETGModConsole.Log($"generating in OnGenerateCoopPlayer");
     return orig(coop);
   }
 
@@ -327,3 +338,12 @@ public static class QoLConfig
   }
 }
 
+// Scrapped for now:
+// internal const string FREE_PARADOX    = "0-Credit Gunslinger / Paradox";
+  // GetNumMetasToQuickRestart // the big one, need to modify this all over
+  // CheckKeepModifiersQuickRestart
+  // OnSelectedCharacterCallback -> prevent decrease on character select
+  // CanBeSelected -> should always return true
+  // SetGunGame blessed runs -> random guns
+
+  // need to figure out how to disable initial creidts for challenge mode, boss rush, and blessed runs

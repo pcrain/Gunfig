@@ -28,11 +28,11 @@ namespace Gunfiguration;
 
 public static class C // constants
 {
-    public static readonly bool DEBUG_BUILD  = true; // set to false for release builds (must be readonly instead of const to avoid build warnings)
+    public static readonly bool DEBUG_BUILD  = false; // set to false for release builds (must be readonly instead of const to avoid build warnings)
 
     public const string MOD_NAME     = "Gunfig";
     public const string MOD_INT_NAME = "Gunfiguration";
-    public const string MOD_VERSION  = "0.1.0";
+    public const string MOD_VERSION  = "1.0.0";
     public const string MOD_GUID     = "pretzel.etg.gunfig";
     public const string MOD_PREFIX   = "gf";
 
@@ -44,27 +44,18 @@ public static class C // constants
 public class Initialisation : BaseUnityPlugin
 {
     public static Initialisation Instance;
-    public void Awake() { }
+    // public void Awake() { }
     public void Start() { ETGModMainBehaviour.WaitForGameManagerStart(GMStart); }
     public void GMStart(GameManager manager)
     {
         try
         {
-            var watch                                 = System.Diagnostics.Stopwatch.StartNew();
-            System.Diagnostics.Process currentProcess = System.Diagnostics.Process.GetCurrentProcess();
-            long oldMemory                            = currentProcess.WorkingSet64;
-            Instance                                  = this;
-
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            Instance  = this;
             ModConfigMenu.Init();
             QoLConfig.Init();
-
             watch.Stop();
             ETGModConsole.Log($"Initialized <color=#{ColorUtility.ToHtmlStringRGB(C.MOD_COLOR).ToLower()}>{C.MOD_NAME} v{C.MOD_VERSION}</color> in "+(watch.ElapsedMilliseconds/1000.0f)+" seconds");
-            if (C.DEBUG_BUILD)
-            {
-                ETGModConsole.Log($"allocated {(currentProcess.WorkingSet64 - oldMemory).ToString("N0")} bytes of memory along the way");
-                GunfigDebug.Init();
-            }
         }
         catch (Exception e)
         {
@@ -76,16 +67,6 @@ public class Initialisation : BaseUnityPlugin
 
 public class GunfigDebug
 {
-    public static void Init()
-    {
-        if (!C.DEBUG_BUILD)
-            return; // do nothing in non-debug builds
-
-        ETGModConsole.Commands.AddGroup("cc", delegate (string[] args) {
-            // ETGModConsole.Log($"attempting to switch player two");
-            });
-    }
-
     // Log with the console only in debug mode
     public static void Log(object text)
     {

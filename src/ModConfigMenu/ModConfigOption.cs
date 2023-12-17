@@ -1,5 +1,6 @@
 namespace Gunfiguration;
 
+// Internal class for managing individual menu items. You should never need to use any of the functions in here directly.
 internal class ModConfigOption : MonoBehaviour
 {
   private static List<ModConfigOption> _PendingUpdatesOnConfirm = new();
@@ -50,29 +51,6 @@ internal class ModConfigOption : MonoBehaviour
     orig(menuItem);
     if (menuItem.GetComponent<ModConfigOption>() is ModConfigOption option)
       option.UpdateColors(menuItem, dim: true);
-  }
-
-  internal void UpdateColors(BraveOptionsMenuItem menuItem, bool dim)
-  {
-    if (menuItem.labelControl != null)
-      menuItem.labelControl.Color = this._labelColor.Dim(dim);
-    if (menuItem.buttonControl != null)
-      menuItem.buttonControl.TextColor = this._labelColor.Dim(dim);
-    if (menuItem.selectedLabelControl != null)
-      menuItem.selectedLabelControl.Color = this._optionColors[menuItem.m_selectedIndex % this._optionColors.Count].Dim(dim);
-    if (menuItem.infoControl != null)
-    {
-      menuItem.infoControl.Text = menuItem.infoOptions[menuItem.m_selectedIndex % this._infoColors.Count];
-      menuItem.infoControl.Color = this._infoColors[menuItem.m_selectedIndex % this._infoColors.Count].Dim(dim);
-    }
-  }
-
-  public static bool HasPendingChanges()
-  {
-    foreach (ModConfigOption option in _PendingUpdatesOnConfirm)
-      if (option._pendingValue != option._currentValue)
-        return true;
-    return false;
   }
 
   private void CommitPendingChanges()
@@ -167,7 +145,7 @@ internal class ModConfigOption : MonoBehaviour
     if (menuItem.buttonControl is dfButton button)
     {
       if (addHandlers)
-        this._control.gameObject.AddComponent<ModConfigMenu.CustomButtonHandler>().onClicked += OnButtonClicked;
+        this._control.gameObject.GetOrAddComponent<ModConfigMenu.CustomButtonHandler>().onClicked += OnButtonClicked;
     }
     if (menuItem.checkboxChecked is dfControl checkBox)
     {
@@ -177,7 +155,7 @@ internal class ModConfigOption : MonoBehaviour
         checkBoxUnchecked.IsVisible = true;
       menuItem.m_selectedIndex = isChecked ? 1 : 0;
       if (addHandlers)
-        this._control.gameObject.AddComponent<ModConfigMenu.CustomCheckboxHandler>().onChanged += OnControlChanged;
+        this._control.gameObject.GetOrAddComponent<ModConfigMenu.CustomCheckboxHandler>().onChanged += OnControlChanged;
     }
     if ((menuItem.selectedLabelControl is dfLabel settingLabel) && menuItem.labelOptions != null)
     {
@@ -193,10 +171,33 @@ internal class ModConfigOption : MonoBehaviour
         break;
       }
       if (addHandlers)
-        this._control.gameObject.AddComponent<ModConfigMenu.CustomLeftRightArrowHandler>().onChanged += OnControlChanged;
+        this._control.gameObject.GetOrAddComponent<ModConfigMenu.CustomLeftRightArrowHandler>().onChanged += OnControlChanged;
     }
 
     UpdateColors(menuItem, dim: true);
+  }
+
+  internal void UpdateColors(BraveOptionsMenuItem menuItem, bool dim)
+  {
+    if (menuItem.labelControl != null)
+      menuItem.labelControl.Color = this._labelColor.Dim(dim);
+    if (menuItem.buttonControl != null)
+      menuItem.buttonControl.TextColor = this._labelColor.Dim(dim);
+    if (menuItem.selectedLabelControl != null)
+      menuItem.selectedLabelControl.Color = this._optionColors[menuItem.m_selectedIndex % this._optionColors.Count].Dim(dim);
+    if (menuItem.infoControl != null)
+    {
+      menuItem.infoControl.Text = menuItem.infoOptions[menuItem.m_selectedIndex % this._infoColors.Count];
+      menuItem.infoControl.Color = this._infoColors[menuItem.m_selectedIndex % this._infoColors.Count].Dim(dim);
+    }
+  }
+
+  internal static bool HasPendingChanges()
+  {
+    foreach (ModConfigOption option in _PendingUpdatesOnConfirm)
+      if (option._pendingValue != option._currentValue)
+        return true;
+    return false;
   }
 
   internal void Setup(ModConfig parentConfig, string key, List<string> values, Action<string, string> update, ModConfig.Update updateType = ModConfig.Update.OnConfirm)

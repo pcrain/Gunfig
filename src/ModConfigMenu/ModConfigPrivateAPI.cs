@@ -1,8 +1,21 @@
 namespace Gunfiguration;
 
-// Private portion of ModConfig API
+// Internal portion of the Gunfig API. You should never need to use any of the functions in here directly.
 public partial class ModConfig
 {
+  /*
+     Eventual planned QoL improvements to make, from most to least important:
+      - can't dynamically enable / disable options at runtime (must restart the game)
+      - can't back out of one level of menus at a time (vanilla behavior; can maybe hook CloseAndMaybeApplyChangesWithPrompt?)
+      - can't have first item of submenu be a label or it breaks focusing (vanilla ToggleToPanel() function assumes first control is selectable)
+
+     Unimportant stuff I probably won't do:
+      - modded config menu breaks when returning to the main menu from Breach (rare to run into, extremely hard to fix, and fixes itself starting a new run)
+      - double menu sounds are played when navigating to new pages due to onfocus events for buttons playing sounds (tricky to fix and barely noticeable)
+      - haven't implemented progress / fill bars (not particularly useful outside vanilla volume controls, so not in a hurry to implement this)
+      - haven't implemented sprites for options (e.g. like vanilla crosshair selection) (very hard, requires modifying sprite atlas, and it is minimally useful)
+  */
+
   private enum ItemType
   {
     Label,
@@ -36,6 +49,8 @@ public partial class ModConfig
   internal string _modName = null;
   internal string _cleanModName = null;
 
+  private ModConfig() { } // cannot construct ModConfig directly, must create / retrieve through GetConfigForMod()
+
   internal static void SaveActiveConfigsToDisk()
   {
     foreach (ModConfig config in _ActiveConfigs)
@@ -63,7 +78,6 @@ public partial class ModConfig
           string val = tokens[1].Trim();
           if (key.Length == 0 || val.Length == 0)
             continue;
-          // Lazy.DebugLog($"    loading config option {key} = {val}");
           this._options[key] = val;
         }
     }
@@ -83,7 +97,6 @@ public partial class ModConfig
           {
             if (string.IsNullOrEmpty(key))
               continue;
-            // Lazy.DebugLog($"    saving config option {key} = {this._options[key]}");
             file.WriteLine($"{key} = {this._options[key]}");
           }
       }
@@ -120,7 +133,6 @@ public partial class ModConfig
         itemControl.gameObject.AddComponent<ModConfigOption>().Setup(
           parentConfig: this, key: item._key, values: item._values, update: item._callback, updateType: item._updateType);
     }
-    subOptionsPanel.Finalize();
     return subOptionsPanel;
   }
 
@@ -132,5 +144,28 @@ public partial class ModConfig
     this._options[key] = value;
     this._dirty = true;
     return value;
+  }
+}
+
+// Private portion of ModConfigHelpers
+public static partial class ModConfigHelpers
+{
+  internal const string MARKUP_DELIM = "@"; // "#" is used for localization strings, so we need something else
+
+  // Helpers for processing colors on various dfControls
+  internal static Color Dim(this Color c, bool dim) => Color.Lerp(dim ? Color.black : Color.white, c, 0.5f);
+  internal static string ProcessColors(this string markupText, out Color color)
+  {
+    string processedText = markupText;
+    color = Color.white;
+    if (processedText.StartsWith(MARKUP_DELIM))
+    {
+      // convert "@" back to "#" for the purposes of color conversion
+      if (ColorUtility.TryParseHtmlString($"#{processedText.Substring(1, 6)}", out color))
+        processedText = processedText.Substring(7);
+      else
+        color = Color.white;
+    }
+    return processedText;
   }
 }

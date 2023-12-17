@@ -1,5 +1,6 @@
 namespace Gunfiguration;
 
+// Internal class for actually constructing menus. You should never need to use any of the functions in here directly.
 internal static class ModConfigMenu
 {
     internal const string _GUNFIG_EXTENSION        = "gunfig";
@@ -521,7 +522,7 @@ internal static class ModConfigMenu
       newCheckboxWrapperPanel.name = $"{label} panel";
       panel.RegisterBraveMenuItem(newCheckboxWrapperPanel);
       if (onchange != null)
-        menuItem.gameObject.AddComponent<CustomCheckboxHandler>().onChanged += onchange;
+        menuItem.gameObject.GetOrAddComponent<CustomCheckboxHandler>().onChanged += onchange;
       return newCheckboxWrapperPanel;
     }
 
@@ -573,7 +574,7 @@ internal static class ModConfigMenu
       newArrowboxWrapperPanel.name = $"{label} panel";
       panel.RegisterBraveMenuItem(newArrowboxWrapperPanel);
       if (onchange != null)
-        menuItem.gameObject.AddComponent<CustomLeftRightArrowHandler>().onChanged += onchange;
+        menuItem.gameObject.GetOrAddComponent<CustomLeftRightArrowHandler>().onChanged += onchange;
       return newArrowboxWrapperPanel;
     }
 
@@ -597,7 +598,7 @@ internal static class ModConfigMenu
       newButtonWrapperPanel.name = $"{label} panel";
       panel.RegisterBraveMenuItem(newButtonWrapperPanel);
       if (onclick != null)
-        menuItem.gameObject.AddComponent<CustomButtonHandler>().onClicked += onclick;
+        menuItem.gameObject.GetOrAddComponent<CustomButtonHandler>().onClicked += onclick;
       return newButtonWrapperPanel;
     }
 
@@ -644,7 +645,7 @@ internal static class ModConfigMenu
         child.RecursiveFocus(isRoot: false);
     }
 
-    internal static void Finalize(this dfScrollPanel panel)
+    private static void Finalize(this dfScrollPanel panel)
     {
       panel.controls.Last().Height += 16f; // fix a weird clipping issue for arrowboxes at the bottom
       foreach (dfControl child in panel.controls)
@@ -693,6 +694,7 @@ internal static class ModConfigMenu
         foreach (ModConfig modConfig in ModConfig._ActiveConfigs)
         {
           dfScrollPanel modConfigPage = modConfig.RegenConfigPage();
+          modConfigPage.Finalize();
           newOptionsPanel.AddButton(label: modConfig._modName).gameObject.AddComponent<ModConfigOption>().Setup(
             parentConfig: modConfig, key: null, values: ModConfig._DefaultValues,
             updateType: ModConfig.Update.Immediate, update: (_, _) => OpenSubMenu(modConfigPage));
