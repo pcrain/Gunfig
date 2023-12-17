@@ -8,6 +8,10 @@ namespace Gunfiguration;
 ///   4) Retrieve configured options anywhere in your code base using <c>Enabled()</c> or <c>Disabled()</c> for toggles and <c>Value()</c> for scrollboxes.
 /// See the included <see cref="QoLConfig"/> class for usage examples.
 /// </summary>
+/// <remarks>
+/// To use this API, make sure your Initialisation class registers the Gunfig BepIn dependency; i.e.:
+///   [BepInDependency(Gunfiguration.C.MOD_GUID)]
+/// </remarks>
 public partial class Gunfig
 {
   /// <summary>

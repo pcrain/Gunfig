@@ -3,7 +3,10 @@ namespace Gunfiguration;
 /*
   Configuration options for general quality-of-life changes, documented for API reference.
 */
-internal static class QoLConfig
+
+using Gunfiguration; // Make sure you're using the Gunfiguration API
+
+public static class QoLConfig
 {
   // It is highly recommended to call Gunfig.Get() once for your mod and cache the result in a static variable.
   internal static Gunfig _Gunfig = null;

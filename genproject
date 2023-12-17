@@ -6,13 +6,10 @@ namespace="Gunfiguration"                        #namespace used throughout sour
 projectname="Gunfig"                             #name of the DLL to create
 projfile="./Gunfiguration.csproj"                #the name of the csproj file to generate
 sourcechecksums="./_${namespace}-checksums-src"  #file containing checksums of all source files to determing recompilation
-audiochecksums="./_${namespace}-checksums-audio" #file containing checksums of all source files to determing recompilation
 externalupdate="./_${namespace}-externalupdate"  #file containing the last time an external resource was added
-audioupdate="./_${namespace}-audioupdate"        #file containing the last time an audio resource / csv was added / updated
 dllname="./bin/Debug/${projectname}.dll"         #DLL name is directly based on the project name
 dotnet35path="$(pwd)/_dotNETFramework/v3.5"      #Path to .NET 3.5 developer assemblies (from NUGet)
 UPDATEDLLS=0                                     #Set to 1 if any new DLLS are added to make sure they're copied correctly to bin/Debug
-#Could not get the external assembly working ):
 projectversion="$(cat 'src/Main.cs' | grep -m1 'MOD_VERSION' | cut -f 2 -d '"')"
 debugbuild="$( [ "false" == "$(cat 'src/Main.cs' | grep -m1 'DEBUG_BUILD' | cut -f 2 -d '=' | cut -f 1 -d ';' | tr -d ' ')" ]; echo "$?" )"
 manifesttemplate=`cat <<HERE
@@ -20,7 +17,7 @@ manifesttemplate=`cat <<HERE
   "name": "$projectname",
   "version_number": "$projectversion",
   "website_url": "https://github.com/pcrain/Gunfiguration",
-  "description": "An in-game mod configuration library for Enter the Gungeon",
+  "description": "A menu API for modded Gungeon",
   "dependencies": [
     "MtG_API-Mod_the_Gungeon_API-1.7.0",
   ]
