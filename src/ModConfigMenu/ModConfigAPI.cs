@@ -2,6 +2,7 @@ namespace Gunfiguration;
 
 /*
    QoL improvements to make, from most to least important:
+    - frozen config options when returning to the main menu
     - can't dynamically enable / disable options at runtime (must restart the game)
     - can't back out of one level of menus at a time (vanilla behavior; maybe hook CloseAndMaybeApplyChangesWithPrompt)
 
