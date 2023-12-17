@@ -109,6 +109,13 @@ public static class QoLConfig
     {
       ETGModConsole.Log($"currently have {GameManager.Instance.AllPlayers.Length} players");
       dungeon.ForceRegenerationOfCharacters = false;
+      if (GameManager.Instance.AllPlayers.Length == 0)
+      {
+        // GenerateBothPlayers();
+        GeneratePlayerOne();
+        GeneratePlayerTwo();
+        return;
+      }
     }
     orig(dungeon, midgameSave);
   }
@@ -251,21 +258,10 @@ public static class QoLConfig
 
     GameManager.Instance.CurrentGameType = GameManager.GameType.COOP_2_PLAYER;
 
-    PlayerController playerController = GameManager.PlayerPrefabForNewGame.GetComponent<PlayerController>();
-    GameStatsManager.Instance.BeginNewSession(playerController);
-    GameObject instantiatedPlayer = UnityEngine.Object.Instantiate(GameManager.PlayerPrefabForNewGame, Vector3.zero, Quaternion.identity);
-    GameManager.PlayerPrefabForNewGame = null;
-    instantiatedPlayer.SetActive(true);
-    PlayerController extantPlayer = instantiatedPlayer.GetComponent<PlayerController>();
-    extantPlayer.PlayerIDX = 0;
-    GameManager.Instance.PrimaryPlayer = extantPlayer;
+    GeneratePlayerOne();
     yield return null;
 
-    GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[Gunfig.Get(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
-    instantiatedCoopPlayer.SetActive(true);
-    PlayerController extantCoopPlayer = instantiatedCoopPlayer.GetComponent<PlayerController>();
-    extantCoopPlayer.PlayerIDX = 1;
-    GameManager.Instance.SecondaryPlayer = extantCoopPlayer;
+    GeneratePlayerTwo();
     yield return null;
 
     // if (!m_inFoyer)
@@ -282,6 +278,28 @@ public static class QoLConfig
     yield return null;
     Foyer.Instance.OnDepartedFoyer();
   }
+
+  private static void GeneratePlayerOne()
+  {
+    PlayerController playerController = GameManager.PlayerPrefabForNewGame.GetComponent<PlayerController>();
+    GameStatsManager.Instance.BeginNewSession(playerController);
+    GameObject instantiatedPlayer = UnityEngine.Object.Instantiate(GameManager.PlayerPrefabForNewGame, Vector3.zero, Quaternion.identity);
+    GameManager.PlayerPrefabForNewGame = null;
+    instantiatedPlayer.SetActive(true);
+    PlayerController extantPlayer = instantiatedPlayer.GetComponent<PlayerController>();
+    extantPlayer.PlayerIDX = 0;
+    GameManager.Instance.PrimaryPlayer = extantPlayer;
+  }
+
+  private static void GeneratePlayerTwo()
+  {
+    GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[Gunfig.Get(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
+    instantiatedCoopPlayer.SetActive(true);
+    PlayerController extantCoopPlayer = instantiatedCoopPlayer.GetComponent<PlayerController>();
+    extantCoopPlayer.PlayerIDX = 1;
+    GameManager.Instance.SecondaryPlayer = extantCoopPlayer;
+  }
+
 
   private static IEnumerator CoopQuickStartCR(FinalIntroSequenceManager introManager)
   {
