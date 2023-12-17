@@ -2,7 +2,7 @@ namespace Gunfiguration;
 
 /*
    Known Issues:
-    - null derefs when doing co-op quick start from the main menu
+    - none :D
 */
 
 public static class QoLConfig
@@ -182,7 +182,7 @@ public static class QoLConfig
     introManager.m_isDoingQuickStart = true;
 
     if (InControl.InputManager.Devices.Count > 0 && Gunfig.Get(QUICKSTART).Contains("Co-op"))
-      GameManager.Instance.StartCoroutine(DoCoopQuickStart());
+      GameManager.Instance.StartCoroutine(DoCoopQuickStart(introManager));
     else
       introManager.StartCoroutine(introManager.DoQuickStart());
   }
@@ -206,79 +206,60 @@ public static class QoLConfig
     orig(dungeon, midgameSave);
   }
 
-  private static IEnumerator DoCoopQuickStart()
+  private static IEnumerator DoCoopQuickStart(FinalIntroSequenceManager introManager)
   {
-    // QuickStartObject.SetActive(false);
-    // GameManager.Instance.StartCoroutine(FadeToBlack(0.1f, true, true));
+    introManager.QuickStartObject?.SetActive(false);
+    introManager.StartCoroutine(introManager.FadeToBlack(0.1f, true, true));
+
     GameManager.PreventGameManagerExistence = false;
     GameManager.SKIP_FOYER = true;
     Foyer.DoMainMenu = false;
-    // if (!m_inFoyer)
-    {
-      AkSoundEngine.LoadBank("SFX.bnk", -1, out uint out_bankID);
-      GameManager.EnsureExistence();
-    }
-    AkSoundEngine.PostEvent("Play_UI_menu_confirm_01", GameManager.Instance.gameObject);
-    // MidGameSaveData saveToContinue = null;
-    // if (GameManager.VerifyAndLoadMidgameSave(out saveToContinue))
-    // {
-    //   yield return null;
-    //   Dungeon.ShouldAttemptToLoadFromMidgameSave = true;
-    //   GameManager.Instance.SetNextLevelIndex(GameManager.Instance.GetTargetLevelIndexFromSavedTileset(saveToContinue.levelSaved));
-    //   GameManager.Instance.GeneratePlayersFromMidGameSave(saveToContinue);
-    //   if (!m_inFoyer)
-    //   {
-    //     GameManager.Instance.FlushAudio();
-    //   }
-    //   GameManager.Instance.IsFoyer = false;
-    //   Foyer.DoIntroSequence = false;
-    //   Foyer.DoMainMenu = false;
-    //   GameManager.Instance.IsSelectingCharacter = false;
-    //   GameManager.Instance.DelayedLoadMidgameSave(0.25f, saveToContinue);
-    //   yield break;
-    // }
+    AkSoundEngine.LoadBank("SFX.bnk", -1, out uint out_bankID);
+    GameManager.EnsureExistence();
+
     GameManager.PlayerPrefabForNewGame = (GameObject)BraveResources.Load(CharacterSelectController.GetCharacterPathFromQuickStart());
     GameManager.Instance.GlobalInjectionData.PreprocessRun();
-    yield return null;
-
-    GameManager.Instance.CurrentGameType = GameManager.GameType.COOP_2_PLAYER;
+    GameManager.Instance.IsSelectingCharacter = false;
+    GameManager.Instance.IsFoyer = false;
 
     GeneratePlayerOne();
     yield return null;
 
+    GameManager.Instance.CurrentGameType = GameManager.GameType.COOP_2_PLAYER;
     GeneratePlayerTwo();
     yield return null;
 
-    // if (!m_inFoyer)
-    {
-      GameManager.Instance.FlushAudio();
-    }
+    GameManager.Instance.RefreshAllPlayers();
     GameManager.Instance.FlushMusicAudio();
     GameManager.Instance.SetNextLevelIndex(1);
-    GameManager.Instance.IsSelectingCharacter = false;
-    GameManager.Instance.IsFoyer = false;
-    GameManager.Instance.DelayedLoadNextLevel(0.5f);
     yield return null;
-    yield return null;
-    yield return null;
+
     Foyer.Instance.OnDepartedFoyer();
+    yield return null;
+
+    GameManager.Instance.LoadNextLevel();
   }
 
   private static void GeneratePlayerOne()
   {
     PlayerController playerController = GameManager.PlayerPrefabForNewGame.GetComponent<PlayerController>();
     GameStatsManager.Instance.BeginNewSession(playerController);
+    Debug.Log("before instantiating");
     GameObject instantiatedPlayer = UnityEngine.Object.Instantiate(GameManager.PlayerPrefabForNewGame, Vector3.zero, Quaternion.identity);
+    Debug.Log("after instantiating");
     GameManager.PlayerPrefabForNewGame = null;
     instantiatedPlayer.SetActive(true);
     PlayerController extantPlayer = instantiatedPlayer.GetComponent<PlayerController>();
     extantPlayer.PlayerIDX = 0;
     GameManager.Instance.PrimaryPlayer = extantPlayer;
+    Debug.Log("after finalizing");
   }
 
   private static void GeneratePlayerTwo()
   {
+    Debug.Log("before instantiating");
     GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[Gunfig.Get(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
+    Debug.Log("after instantiating");
     instantiatedCoopPlayer.SetActive(true);
     PlayerController extantCoopPlayer = instantiatedCoopPlayer.GetComponent<PlayerController>();
     extantCoopPlayer.PlayerIDX = 1;
