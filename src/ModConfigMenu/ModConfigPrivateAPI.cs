@@ -35,19 +35,19 @@ public partial class ModConfig
     internal Action<string, string>  _callback   = null;
   }
 
-  internal static List<ModConfig> _ActiveConfigs               = new(); // list of all extant ModConfig instances
+  internal static readonly List<string> _UncheckedBoxValues = new(){"0", "1"}; // options for default-unchecked checkboxes
+  internal static readonly List<string> _CheckedBoxValues   = new(){"1", "0"}; // options for default-checked checkboxes
+  internal static readonly List<string> _DefaultValues      = new(){"1"};      // dummy option for things like buttons
 
-  private Dictionary<string, string> _options                  = new(); // dictionary of mod options as key value pairs
-  private List<Item> _registeredOptions                        = new(); // list of options from which we can dynamically regenerate the options panel
+  internal static List<ModConfig> _ActiveConfigs    = new(); // list of all extant ModConfig instances
+  internal static List<string>    _ConfigAssemblies = new(); // list of assembly names associated with ModConfig instances, to avoid illegal accesses
 
-  internal static readonly List<string> _UncheckedBoxValues     = new(){"0", "1"};
-  internal static readonly List<string> _CheckedBoxValues       = new(){"1", "0"};
-  internal static readonly List<string> _DefaultValues          = new(){"1"};
-
-  private bool _dirty = false; // whether we've been changed since last saving to disk
-  private string _configFile = null; // the file on disk to which we're writing
-  internal string _modName = null;
-  internal string _cleanModName = null;
+  private Dictionary<string, string> _options = new(); // dictionary of mod options as key value pairs
+  private List<Item> _registeredOptions       = new(); // list of options from which we can dynamically regenerate the options panel
+  private bool _dirty                         = false; // whether we've been changed since last saving to disk
+  private string _configFile                  = null;  // the file on disk to which we're writing
+  internal string _modName                    = null;  // the name of our mod, including any formatting
+  internal string _cleanModName               = null;  // the name of our mod, without formatting
 
   private ModConfig() { } // cannot construct ModConfig directly, must create / retrieve through GetConfigForMod()
 

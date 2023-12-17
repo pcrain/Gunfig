@@ -45,10 +45,14 @@ public partial class ModConfig
   public static ModConfig GetConfigForMod(string modName)
   {
     string cleanModName = modName.ProcessColors(out Color _);
-    foreach (ModConfig config in _ActiveConfigs)
+    for (int i = 0; i < _ActiveConfigs.Count; ++i)
     {
-      if (config._cleanModName == cleanModName)
-        return config;
+      ModConfig config = _ActiveConfigs[i];
+      if (config._cleanModName != cleanModName)
+        continue;
+      if (_ConfigAssemblies[i] != Assembly.GetCallingAssembly().FullName)
+        throw new FieldAccessException("Tried to access a Gunfig that doesn't belong to you!");
+      return config;
     }
 
     GunfigDebug.Log($"Creating new ModConfig instance for {cleanModName}");
@@ -58,6 +62,7 @@ public partial class ModConfig
     modConfig._configFile   = Path.Combine(SaveManager.SavePath, $"{cleanModName}.{ModConfigMenu._GUNFIG_EXTENSION}");
     modConfig.LoadFromDisk();
     _ActiveConfigs.Add(modConfig);
+    _ConfigAssemblies.Add(Assembly.GetCallingAssembly().FullName); // cache our assembly name to avoid illegal config accesses from other mods
     return modConfig;
   }
 
