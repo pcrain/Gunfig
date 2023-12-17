@@ -2,7 +2,7 @@
 
 ### For Modders:
 
-Downloaded the latest Gunfig API dll [from GitHub]() or [from Thunderstore](), and add it as a reference in your project. See the [API Documentation]() and [Example Configuration]() to get started!
+Downloaded the latest Gunfig API dll [from GitHub](https://github.com/pcrain/Gunfig/releases) or [from Thunderstore](https://enter-the-gungeon.thunderstore.io/package/CaptainPretzel/Gunfig/), and add it as a reference in your project. See the [API Documentation](https://github.com/pcrain/Gunfig/blob/master/src/Gunfig/GunfigAPI.cs) and [Example Configuration](https://github.com/pcrain/Gunfig/blob/master/src/DefaultConfigs/QoLConfig.cs) to get started!
 
 ### For Players:
 

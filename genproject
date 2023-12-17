@@ -16,7 +16,7 @@ manifesttemplate=`cat <<HERE
 {
   "name": "$projectname",
   "version_number": "$projectversion",
-  "website_url": "https://github.com/pcrain/Gunfiguration",
+  "website_url": "https://github.com/pcrain/Gunfig",
   "description": "A menu API for modded Gungeon",
   "dependencies": [
     "MtG_API-Mod_the_Gungeon_API-1.7.0",
