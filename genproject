@@ -216,15 +216,15 @@ if [ $rebuild -eq 1 ]; then
   echo -e "[${GRN}>${BLN}] Importing ${dllname} to EtG plugins directory"
   /bin/cp "$dllname" "$plugindir"
 
-  #Import the mod to GungeonCraft
-  echo -e "[${GRN}>${BLN}] Importing ${dllname} to Gungeoncraft project"
-  gcpath="/home/pretzel/workspace/gungy-cwaffing"
-  if [ -e "${gcpath}" ]; then
-    gcpackagepath="${gcpath}/packages/EtG.${namespace}.${projectversion}/lib/net35"
-    mkdir -p "$gcpackagepath"
-    /bin/cp "$dllname" "$gcpackagepath"
-    /bin/cp "$dllname" "${gcpath}/bin/Debug"
-  fi
+  #Import the mod to GungeonCraft (disabled for now)
+  # echo -e "[${GRN}>${BLN}] Importing ${dllname} to Gungeoncraft project"
+  # gcpath="/home/pretzel/workspace/gungy-cwaffing"
+  # if [ -e "${gcpath}" ]; then
+  #   gcpackagepath="${gcpath}/packages/EtG.${namespace}.${projectversion}/lib/net35"
+  #   mkdir -p "$gcpackagepath"
+  #   /bin/cp "$dllname" "$gcpackagepath"
+  #   /bin/cp "$dllname" "${gcpath}/bin/Debug"
+  # fi
 fi
 
 #Generate new Thunderstore Package
