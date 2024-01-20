@@ -26,6 +26,12 @@ internal static class GunfigMenu
       //     typeof(MenuMaster).GetMethod("ReturnToPreOptionsMenu", BindingFlags.Static | BindingFlags.NonPublic)
       //     );
 
+      // Make sure our configurations are loaded before we reach the main menu
+      new Hook(
+          typeof(Foyer).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic),
+          typeof(GunfigMenu).GetMethod("OnFoyerAwake", BindingFlags.Static | BindingFlags.NonPublic)
+          );
+
       // Make sure our menus are loaded in the main menu
       new Hook(
           typeof(MainMenuFoyerController).GetMethod("InitializeMainMenu", BindingFlags.Instance | BindingFlags.Public),
@@ -97,6 +103,14 @@ internal static class GunfigMenu
     // {
     //   orig(pm);
     // }
+
+    private static void OnFoyerAwake(Action<Foyer> orig, Foyer f)
+    {
+      if (GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.PreOptionsMenu is PreOptionsMenuController preOptions)
+        if (!preOptions.m_panel.Find<dfButton>(_MOD_MENU_LABEL))
+          RebuildOptionsPanels();
+      orig(f);
+    }
 
     private static void InitializeMainMenu(Action<MainMenuFoyerController> orig, MainMenuFoyerController mm)
     {
