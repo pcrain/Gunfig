@@ -82,7 +82,7 @@ public partial class Gunfig
   /// <param name="updateType">Determines when changes to the option are applied. See <see cref="Gunfig.Update"/> documentation for descriptions of each option.</param>
   public void AddToggle(string key, bool enabled = false, string label = null, Action<string, string> callback = null, Gunfig.Update updateType = Gunfig.Update.OnConfirm)
   {
-    this._registeredOptions.Add(new Item(){
+    RegisterOption(new Item(){
       _itemType   = ItemType.CheckBox,
       _updateType = updateType,
       _key        = key,
@@ -105,7 +105,7 @@ public partial class Gunfig
   /// <param name="updateType">Determines when changes to the option are applied. See <see cref="Gunfig.Update"/> documentation for descriptions of each option.</param>
   public void AddScrollBox(string key, List<string> options, string label = null, Action<string, string> callback = null, List<string> info = null, Gunfig.Update updateType = Gunfig.Update.OnConfirm)
   {
-    this._registeredOptions.Add(new Item(){
+    RegisterOption(new Item(){
       _itemType   = ItemType.ArrowBox,
       _updateType = updateType,
       _key        = key,
@@ -126,7 +126,7 @@ public partial class Gunfig
   /// The callback's second argument will always be "1", and is only set for compatibility with other option callbacks.</param>
   public void AddButton(string key, string label = null, Action<string, string> callback = null)
   {
-    this._registeredOptions.Add(new Item(){
+    RegisterOption(new Item(){
       _itemType   = ItemType.Button,
       _updateType = Gunfig.Update.Immediate,
       _key        = key,
@@ -142,7 +142,7 @@ public partial class Gunfig
   /// <param name="label">The text displayed for the label on the config page. Can be colorized using <see cref="WithColor()"/>.</param>
   public void AddLabel(string label)
   {
-    this._registeredOptions.Add(new Item(){
+    RegisterOption(new Item(){
       _itemType   = ItemType.Label,
       _updateType = Gunfig.Update.Immediate,
       _key        = $"{label} label",

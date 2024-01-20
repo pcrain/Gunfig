@@ -107,6 +107,15 @@ public partial class Gunfig
     }
   }
 
+  private void RegisterOption(Item item)
+  {
+    this._registeredOptions.Add(item);
+    if (item._itemType != ItemType.CheckBox && item._itemType != ItemType.ArrowBox)
+      return;
+    if (this.Value(item._key) == null) // make sure we have a default value for all loaded configuration options
+      this.Set(item._key, item._values[0]);
+  }
+
   internal dfScrollPanel RegenConfigPage()
   {
     dfScrollPanel subOptionsPanel = GunfigMenu.NewOptionsPanel($"{this._modName}");
