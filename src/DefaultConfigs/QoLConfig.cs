@@ -15,6 +15,7 @@ public static class QoLConfig
   internal const string FINGER_SAVER    = "Auto-fire Semi-Automatic Weapons";
   internal const string PLAYER_TWO_CHAR = "Co-op Character";
   internal const string QUICKSTART      = "Quick Start Behavior";
+  internal const string COOP_FOYER_SEL  = "Breach Co-op Character Select";
   internal const string STATIC_CAMERA   = "Static Camera While Aiming";
   internal const string MENU_SOUNDS     = "Better Menu Sounds";
   internal const string HEROBRINE       = "Disable Herobrine";
@@ -68,6 +69,7 @@ public static class QoLConfig
     _Gunfig.AddScrollBox(key: QUICKSTART, options: _QUICKSTART_OPTIONS, info: _QUICKSTART_DESCRIPTIONS);
 
     // Simple toggles can be created with extremely minimal setup! We can get toggle options later with, e.g., Gunfig.Enabled() or Gunfig.Disabled().
+    _Gunfig.AddToggle(key: COOP_FOYER_SEL);
     _Gunfig.AddToggle(key: FINGER_SAVER);
     _Gunfig.AddToggle(key: STATIC_CAMERA);
     _Gunfig.AddToggle(key: HEALTH_BARS);
@@ -178,9 +180,10 @@ public static class QoLConfig
     return orig(); // return the original value
   }
 
+  internal static string _ManualCoopPrefabOverride = null;
   private static PlayerController OnGenerateCoopPlayer(Func<HutongGames.PlayMaker.Actions.ChangeCoopMode, PlayerController> orig, HutongGames.PlayMaker.Actions.ChangeCoopMode coop)
   {
-    coop.PlayerPrefabPath = $"Player{_PLAYER_MAP[_Gunfig.Value(PLAYER_TWO_CHAR)]}";
+    coop.PlayerPrefabPath = _ManualCoopPrefabOverride ?? $"Player{_PLAYER_MAP[_Gunfig.Value(PLAYER_TWO_CHAR)]}";
     return orig(coop);
   }
 
@@ -284,7 +287,8 @@ public static class QoLConfig
 
   private static void GeneratePlayerTwo()
   {
-    GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load($"Player{_PLAYER_MAP[_Gunfig.Value(PLAYER_TWO_CHAR)]}"), Vector3.zero, Quaternion.identity);
+    string p2Prefab = _ManualCoopPrefabOverride ?? $"Player{_PLAYER_MAP[_Gunfig.Value(PLAYER_TWO_CHAR)]}";
+    GameObject instantiatedCoopPlayer = UnityEngine.Object.Instantiate((GameObject)BraveResources.Load(p2Prefab), Vector3.zero, Quaternion.identity);
     instantiatedCoopPlayer.SetActive(true);
     PlayerController extantCoopPlayer = instantiatedCoopPlayer.GetComponent<PlayerController>();
     extantCoopPlayer.PlayerIDX = 1;
@@ -357,6 +361,62 @@ public static class QoLConfig
               return;
           LootEngine.SpawnItem(PickupObjectDatabase.GetById(databaseEntry.pickupObjectId).gameObject, GameManager.Instance.BestActivePlayer.CenterPosition, Vector2.up, 1f);
           AkSoundEngine.PostEvent("Play_OBJ_power_up_01", GameManager.Instance.BestActivePlayer.gameObject);
+      }
+  }
+
+  [HarmonyPatch(typeof(RoomHandler), nameof(RoomHandler.GetNearestInteractable))]
+  private class GetNearestInteractablePatch
+  {
+        [HarmonyILManipulator]
+        private static void GetNearestInteractableIL(ILContext il)
+        {
+            ILCursor cursor = new ILCursor(il);
+            if (!cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld<TalkDoerLite>("PreventCoopInteraction")))
+                return;
+            cursor.Emit(OpCodes.Call, typeof(GetNearestInteractablePatch).GetMethod("CheckPreventCoopInteraction", BindingFlags.Static | BindingFlags.NonPublic));
+        }
+
+        private static bool CheckPreventCoopInteraction(bool oldValue)
+        {
+          return oldValue && _Gunfig.Disabled(COOP_FOYER_SEL);
+        }
+  }
+
+  [HarmonyPatch(typeof(TalkDoerLite), nameof(TalkDoerLite.Interact))]
+  private class FoyerCharacterCoopInteractPatch
+  {
+      static bool Prefix(TalkDoerLite __instance, PlayerController interactor)
+      {
+        if (interactor == GameManager.Instance.PrimaryPlayer)
+          return true; // call the original method
+        if (!GameManager.Instance.IsFoyer)
+          return true; // call the original method
+        if (_Gunfig.Disabled(COOP_FOYER_SEL))
+          return true; // call the original method
+        if (__instance.gameObject.GetComponent<FoyerCharacterSelectFlag>() is not FoyerCharacterSelectFlag f)
+          return true; // call the original method
+        if (!f.CanBeSelected())
+          return true; // call the original method
+        ReassignCoopPlayer(f);
+        return false; // skip the original method
+      }
+
+      private static PlayerController ReassignCoopPlayer(FoyerCharacterSelectFlag f)
+      {
+        _ManualCoopPrefabOverride = f.CharacterPrefabPath;
+        Vector2 poofPos = GameManager.Instance.SecondaryPlayer.CenterPosition;
+        Vector3 spawnPos = GameManager.Instance.SecondaryPlayer.transform.position;
+        GameManager.Instance.ClearSecondaryPlayer();
+        GameManager.LastUsedCoopPlayerPrefab = (GameObject)BraveResources.Load(_ManualCoopPrefabOverride);
+        GameObject gameObject = UnityEngine.Object.Instantiate(GameManager.LastUsedCoopPlayerPrefab, spawnPos, Quaternion.identity);
+        gameObject.SetActive(true);
+        PlayerController playerController = gameObject.GetComponent<PlayerController>();
+        if (f && f.IsAlternateCostume)
+          playerController.SwapToAlternateCostume();
+        GameManager.Instance.SecondaryPlayer = playerController;
+        playerController.PlayerIDX = 1;
+        LootEngine.DoDefaultItemPoof(poofPos);
+        return playerController;
       }
   }
 }

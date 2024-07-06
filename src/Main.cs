@@ -21,6 +21,8 @@
     global using MonoMod.Cil;
     global using Mono.Cecil.Cil; //Instruction (for IL)
     global using HarmonyLib;
+
+    global using Dungeonator;
 #endregion
 
 global using Component = UnityEngine.Component;
