@@ -119,6 +119,12 @@ public partial class Gunfig
     });
   }
 
+  /// <summary>
+  /// Appends a new option to the scrollbox corresponding to the given <paramref name="key"/> in the current <paramref name="Gunfig"/>'s config page.
+  /// </summary>
+  /// <param name="key">The key for accessing the scrollbox's value through <c>Value()</c> and passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
+  /// <param name="option">The new option value to add to the scrollbox. Can be colorized using <see cref="WithColor()"/>.</param>
+  /// <param name="info">A description for the new option. Defaults to an empty string if not specified. Can be colorized using <see cref="WithColor()"/>. Ignored if the scrollbox doesn't contain info strings.</param>
   public void AddDynamicOptionToScrollBox(string key, string option, string info = null)
   {
     foreach (Item item in this._registeredOptions)
@@ -127,18 +133,12 @@ public partial class Gunfig
         continue;
       if (item._key != key)
         continue;
-      if ((item._info == null) != (info == null))
-      {
-        if (info == null)
-          ETGModConsole.Log($"Error setting up scroll box {key}: tried to add null info string to scroll box with non-null info list");
-        else
-          ETGModConsole.Log($"Error setting up scroll box {key}: tried to add non-null info string to scroll box with null info list");
-        continue;
-      }
       item._values.Add(option);
       if (item._info != null)
-        item._info.Add(info);
+        item._info.Add(info ?? string.Empty);
+      return;
     }
+    ETGModConsole.Log($"WARNING: Tried to add dynamic option to non-existent scroll box {key}!");
   }
 
   /// <summary>
