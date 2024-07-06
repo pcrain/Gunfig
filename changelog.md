@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.4 (TBD)
+- Added config option for allowing player to spawn in items and guns directly from Ammonomicon
+
 ## 1.0.3 (2024-01-19)
 - Switched to an alternate method for loading configuration options early since the intro sequence hook ended up breaking things
 

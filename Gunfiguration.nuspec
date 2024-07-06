@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>EtG.Gunfiguration</id>
+    <version>1.0.3</version>
+    <title>EtG.Gunfiguration$</title>
+    <authors>CaptainPretzel$</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <!-- <icon>icon.png</icon> -->
+    <projectUrl>https://github.com/pcrain/Gunfig/</projectUrl>
+    <description>A menu API for modded Gungeon</description>
+    <releaseNotes>First NuGet release of 1.0.3</releaseNotes>
+    <copyright>MIT</copyright>
+    <tags></tags>
+  </metadata>
+</package>

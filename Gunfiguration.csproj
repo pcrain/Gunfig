@@ -15,7 +15,7 @@
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
-    <FrameworkPathOverride>/home/pretzel/workspace/gunfig/_dotNETFramework/v3.5</FrameworkPathOverride>
+    <FrameworkPathOverride>/home/pretzel/workspace/gungeon-projects/gunfig/_dotNETFramework/v3.5</FrameworkPathOverride>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <LangVersion>latest</LangVersion>

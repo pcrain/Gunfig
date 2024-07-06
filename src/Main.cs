@@ -20,6 +20,7 @@
     global using MonoMod.Utils;
     global using MonoMod.Cil;
     global using Mono.Cecil.Cil; //Instruction (for IL)
+    global using HarmonyLib;
 #endregion
 
 global using Component = UnityEngine.Component;
@@ -28,11 +29,11 @@ namespace Gunfiguration;
 
 public static class C // constants
 {
-    public static readonly bool DEBUG_BUILD  = false; // set to false for release builds (must be readonly instead of const to avoid build warnings)
+    public static readonly bool DEBUG_BUILD  = true; // set to false for release builds (must be readonly instead of const to avoid build warnings)
 
     public const string MOD_NAME     = "Gunfig";
     public const string MOD_INT_NAME = "Gunfiguration";
-    public const string MOD_VERSION  = "1.0.3";
+    public const string MOD_VERSION  = "1.0.4";
     public const string MOD_GUID     = "pretzel.etg.gunfig";
     public const string MOD_PREFIX   = "gf";
 
@@ -54,6 +55,8 @@ public class Initialisation : BaseUnityPlugin
             Instance  = this;
             GunfigMenu.Init();
             QoLConfig.Init();
+            Harmony harmony = new Harmony(C.MOD_GUID);
+            harmony.PatchAll();
             watch.Stop();
             ETGModConsole.Log($"Initialized <color=#{ColorUtility.ToHtmlStringRGB(C.MOD_COLOR).ToLower()}>{C.MOD_NAME} v{C.MOD_VERSION}</color> in "+(watch.ElapsedMilliseconds/1000.0f)+" seconds");
         }

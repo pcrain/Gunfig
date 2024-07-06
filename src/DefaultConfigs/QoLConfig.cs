@@ -20,6 +20,8 @@ public static class QoLConfig
   internal const string HEROBRINE       = "Disable Herobrine";
   internal const string HEALTH_BARS     = "Show Enemy Health Bars";
   internal const string DAMAGE_NUMS     = "Show Damage Numbers";
+  internal const string CHEATS_LABEL    = "Cheats / Debug Stuff";
+  internal const string SPAWN_ITEMS     = "Spawn Items from Ammonomicon";
 
   // Note the formatting applied to individual labels. Formatting can be applied to all menus strings, but NOT to option keys.
   private static readonly List<string> _QUICKSTART_OPTIONS = new() {
@@ -73,6 +75,12 @@ public static class QoLConfig
 
     // Add a toggle that goes into effect immediately without awaiting confirmation from the player.
     _Gunfig.AddToggle(key: MENU_SOUNDS, updateType: Gunfig.Update.Immediate);
+
+    // Add a colorized label
+    _Gunfig.AddLabel(CHEATS_LABEL.Red());
+
+    // Add a colorized toggle
+    _Gunfig.AddToggle(key: SPAWN_ITEMS, label: SPAWN_ITEMS.Magenta());
 
     // Add a button with a custom callback when processed. Buttons always trigger their callbacks immediately when pressed.
     // Note that we have to explicitly specify a label to color the button text Red, as we cannot add colors to the key.
@@ -314,6 +322,33 @@ public static class QoLConfig
 
     if (_Gunfig.Enabled(DAMAGE_NUMS))
       GameUIRoot.Instance.DoDamageNumber(worldPosition, heightOffGround, Mathf.Max(Mathf.RoundToInt(damageAmount), 1));
+  }
+
+  [HarmonyPatch(typeof(AmmonomiconPokedexEntry), nameof(AmmonomiconPokedexEntry.Awake))]
+  class SpawnItemsFromAmmonomiconPatch
+  {
+      static void Postfix(AmmonomiconPokedexEntry __instance)
+      {
+          __instance.m_button.KeyDown += OnKeyDown;
+      }
+
+      private static void OnKeyDown(dfControl control, dfKeyEventArgs keyEvent)
+      {
+          if (keyEvent.KeyCode != KeyCode.Return)
+              return;
+          if (!_Gunfig.Enabled(SPAWN_ITEMS))
+              return;
+          if (control.GetComponent<AmmonomiconPokedexEntry>() is not AmmonomiconPokedexEntry ammonomiconEntry)
+              return;
+          if (ammonomiconEntry.encounterState != AmmonomiconPokedexEntry.EncounterState.ENCOUNTERED)
+              return;
+          if (ammonomiconEntry.linkedEncounterTrackable is not EncounterDatabaseEntry databaseEntry)
+              return;
+          if (databaseEntry.pickupObjectId == -1)
+              return;
+          LootEngine.SpawnItem(PickupObjectDatabase.GetById(databaseEntry.pickupObjectId).gameObject, GameManager.Instance.BestActivePlayer.CenterPosition, Vector2.up, 1f);
+          AkSoundEngine.PostEvent("Play_OBJ_power_up_01", GameManager.Instance.BestActivePlayer.gameObject);
+      }
   }
 }
 
