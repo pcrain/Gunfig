@@ -45,7 +45,6 @@ public static class C // constants
 public class Initialisation : BaseUnityPlugin
 {
     public static Initialisation Instance;
-    // public void Awake() { }
     public void Start() { ETGModMainBehaviour.WaitForGameManagerStart(GMStart); }
     public void GMStart(GameManager manager)
     {

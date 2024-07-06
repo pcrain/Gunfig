@@ -87,8 +87,17 @@ public static class QoLConfig
     _Gunfig.AddButton(key: HEROBRINE, label: HEROBRINE.Red(),
       callback: (optionKey, optionValue) => ETGModConsole.Log($"Clicked the {optionKey} button...but you can't disable Herobrine :/"));
 
+    // Do some extra setup once all mods are loaded in
+    Gunfig.OnAllModsLoaded += LateInit;
+
     // See the hooks and functions throughout the remainder of this file to see examples of how configuration options are used in practice.
     InitQoLHooks();
+  }
+
+  private static void LateInit()
+  {
+    // Dynamically update our PLAYER_TWO_CHAR scroll box with modded characters
+    GunfigDebug.Log($"doing late init for QoL config");
   }
 
   private static void InitQoLHooks()

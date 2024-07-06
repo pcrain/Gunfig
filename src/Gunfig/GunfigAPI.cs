@@ -41,6 +41,9 @@ public partial class Gunfig
     OnRestart,
   }
 
+  /// <summary>Global event to be run once all mods dependent on MtG API are loaded in. Useful for dynamically populated scroll boxes.</summary>
+  public static Action OnAllModsLoaded;
+
   /// <summary>
   /// Retrieves the unique Gunfig associated with the given <paramref name="modName"/>, creating it if it doesn't yet exist.
   /// </summary>
@@ -101,7 +104,7 @@ public partial class Gunfig
   /// <param name="callback">An optional Action to call when changes to the scrollbox are applied.
   /// The callback's first argument will be the scrollbox's <paramref name="key"/>.
   /// The callback's second argument will be the scrollbox's displayed value.</param>
-  /// <param name="info">A list of strings determining informational text to be displayed alongside each value of the scrollbox. Must match the length of <paramref name="options"/> exactly. Can be individually colorized using <see cref="WithColor()"/>.</param>
+  /// <param name="info">A list of strings determining informational text to be displayed alongside each value of the scrollbox. Must be null or match the length of <paramref name="options"/> exactly. Can be individually colorized using <see cref="WithColor()"/>.</param>
   /// <param name="updateType">Determines when changes to the option are applied. See <see cref="Gunfig.Update"/> documentation for descriptions of each option.</param>
   public void AddScrollBox(string key, List<string> options, string label = null, Action<string, string> callback = null, List<string> info = null, Gunfig.Update updateType = Gunfig.Update.OnConfirm)
   {
@@ -114,6 +117,28 @@ public partial class Gunfig
       _values     = options,
       _info       = info,
     });
+  }
+
+  public void AddDynamicOptionToScrollBox(string key, string option, string info = null)
+  {
+    foreach (Item item in this._registeredOptions)
+    {
+      if (item._itemType != ItemType.ArrowBox)
+        continue;
+      if (item._key != key)
+        continue;
+      if ((item._info == null) != (info == null))
+      {
+        if (info == null)
+          ETGModConsole.Log($"Error setting up scroll box {key}: tried to add null info string to scroll box with non-null info list");
+        else
+          ETGModConsole.Log($"Error setting up scroll box {key}: tried to add non-null info string to scroll box with null info list");
+        continue;
+      }
+      item._values.Add(option);
+      if (item._info != null)
+        item._info.Add(info);
+    }
   }
 
   /// <summary>

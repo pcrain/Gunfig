@@ -35,6 +35,20 @@ public partial class Gunfig
     internal Action<string, string>  _callback   = null;
   }
 
+  [HarmonyPatch(typeof(FinalIntroSequenceManager), nameof(FinalIntroSequenceManager.Start))]
+  private static class FinalIntroSequenceManagerStartPatch // doesn't actually hook the ienumerator itsef, only the implicit method that calls it
+  {
+      private static bool _AllModsLoaded = false;
+      static void Prefix()
+      {
+          if (_AllModsLoaded)
+              return;
+          _AllModsLoaded = true;
+          if (OnAllModsLoaded != null)
+              OnAllModsLoaded();
+      }
+  }
+
   internal static readonly List<string> _UncheckedBoxValues = new(){"0", "1"}; // options for default-unchecked checkboxes
   internal static readonly List<string> _CheckedBoxValues   = new(){"1", "0"}; // options for default-checked checkboxes
   internal static readonly List<string> _DefaultValues      = new(){"1"};      // dummy option for things like buttons
