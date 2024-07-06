@@ -47,7 +47,7 @@ public partial class Gunfig
   /// <summary>
   /// Retrieves the unique Gunfig associated with the given <paramref name="modName"/>, creating it if it doesn't yet exist.
   /// </summary>
-  /// <param name="modName">A name to uniquely identify your mod's configuration. The subpage in the MOD CONFIG menu will be set to this name.</param>
+  /// <param name="modName">A name to uniquely identify your mod's configuration. The subpage in the MOD CONFIG menu will be set to this name. Can be colorized using <see cref="WithColor()"/>.</param>
   /// <returns>A unique <paramref name="Gunfig"/> associated with the given <paramref name="modName"/>. This can be safely stored in a variable and retrieved for later use.</returns>
   public static Gunfig Get(string modName)
   {
@@ -65,7 +65,7 @@ public partial class Gunfig
     GunfigDebug.Log($"Creating new Gunfig instance for {cleanModName}");
     Gunfig Gunfig     = new Gunfig();
     Gunfig._modName      = modName;  // need to keep colors intact here
-    Gunfig._cleanModName = cleanModName;  // need to keep colors intact here
+    Gunfig._cleanModName = cleanModName;  // need to remove colors here
     Gunfig._configFile   = Path.Combine(SaveManager.SavePath, $"{cleanModName}.{GunfigMenu._GUNFIG_EXTENSION}");
     Gunfig.LoadFromDisk();
     _ActiveConfigs.Add(Gunfig);
@@ -120,7 +120,7 @@ public partial class Gunfig
   }
 
   /// <summary>
-  /// Appends a new option to the scrollbox corresponding to the given <paramref name="key"/> in the current <paramref name="Gunfig"/>'s config page.
+  /// Appends a new option to the scrollbox corresponding to the given <paramref name="key"/> in the current <paramref name="Gunfig"/>'s config page. Updates do not take effect until the next time menus are rebuilt. Most useful when used in conjunction with the <see cref="OnAllModsLoaded"/> event.
   /// </summary>
   /// <param name="key">The key for accessing the scrollbox's value through <c>Value()</c> and passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
   /// <param name="option">The new option value to add to the scrollbox. Can be colorized using <see cref="WithColor()"/>.</param>
