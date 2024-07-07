@@ -6,6 +6,7 @@ public partial class Gunfig
   /*
      Eventual planned QoL improvements to make, from most to least important:
       - can't dynamically enable / disable options at runtime (must restart the game)
+      - buttons and labels get written out to gunfig files
 
      Unimportant stuff I probably won't do:
       - modded config menu breaks when returning to the main menu from Breach (rare to run into, extremely hard to fix, and fixes itself starting a new run)

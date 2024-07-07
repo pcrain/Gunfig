@@ -98,7 +98,6 @@ public static class QoLConfig
 
   private static void LateInit()
   {
-    // Dynamically update our PLAYER_TWO_CHAR scroll box with modded characters
     GunfigDebug.Log($"doing late init for QoL config");
   }
 
