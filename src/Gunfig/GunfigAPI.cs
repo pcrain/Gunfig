@@ -63,14 +63,14 @@ public partial class Gunfig
     }
 
     GunfigDebug.Log($"Creating new Gunfig instance for {cleanModName}");
-    Gunfig Gunfig     = new Gunfig();
-    Gunfig._modName      = modName;  // need to keep colors intact here
-    Gunfig._cleanModName = cleanModName;  // need to remove colors here
-    Gunfig._configFile   = Path.Combine(SaveManager.SavePath, $"{cleanModName}.{GunfigMenu._GUNFIG_EXTENSION}");
-    Gunfig.LoadFromDisk();
-    _ActiveConfigs.Add(Gunfig);
+    Gunfig gunfig     = new Gunfig();
+    gunfig._modName      = modName;  // need to keep colors intact here
+    gunfig._cleanModName = cleanModName;  // need to remove colors here
+    gunfig._configFile   = Path.Combine(SaveManager.SavePath, $"{cleanModName}.{GunfigMenu._GUNFIG_EXTENSION}");
+    gunfig.LoadFromDisk();
+    _ActiveConfigs.Add(gunfig);
     _ConfigAssemblies.Add(Assembly.GetCallingAssembly().FullName); // cache our assembly name to avoid illegal config accesses from other mods
-    return Gunfig;
+    return gunfig;
   }
 
   /// <summary>
@@ -159,6 +159,27 @@ public partial class Gunfig
       _callback   = callback,
       _values     = _DefaultValues,
     });
+  }
+
+  /// <summary>
+  /// Appends a new submenu button to the current <paramref name="Gunfig"/> instance's config page, and returns a new child <paramref name="Gunfig"/> instance corresponding to the new submenu's page.
+  /// </summary>
+  /// <param name="label">The label displayed for the submenu button on the current <paramref name="Gunfig"/> instance's config page. Can be colorized using <see cref="WithColor()"/>.</param>
+  /// <returns>A new child <paramref name="Gunfig"/> instance corresponding to the new submenu's page. Returns null if the submenu already exists.
+  /// Note that options added to this new child Gunfig instance still count as options for its top level parent Gunfig. E.g., submenus cannot contains keys used in any of their parents,
+  /// and keys from submenus can be accessed directly through the parent Gunfig.</returns>
+  public Gunfig AddSubMenu(string label)
+  {
+    Gunfig subMenu = this.GetSubMenu(label);
+    RegisterOption(new Item(){
+      _itemType   = ItemType.Button,
+      _updateType = Gunfig.Update.Immediate,
+      _key        = $"{label} submenu label",
+      _label      = label,
+      _callback   = subMenu.OpenConfigPage,
+      _values     = _DefaultValues,
+    });
+    return subMenu;
   }
 
   /// <summary>

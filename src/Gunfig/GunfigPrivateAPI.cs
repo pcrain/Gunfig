@@ -6,8 +6,6 @@ public partial class Gunfig
   /*
      Eventual planned QoL improvements to make, from most to least important:
       - can't dynamically enable / disable options at runtime (must restart the game)
-      - can't back out of one level of menus at a time (vanilla behavior; can maybe hook CloseAndMaybeApplyChangesWithPrompt?)
-      - can't have first item of submenu be a label or it breaks focusing (vanilla ToggleToPanel() function assumes first control is selectable)
 
      Unimportant stuff I probably won't do:
       - modded config menu breaks when returning to the main menu from Breach (rare to run into, extremely hard to fix, and fixes itself starting a new run)
@@ -60,10 +58,14 @@ public partial class Gunfig
   private List<Item> _registeredOptions       = new(); // list of options from which we can dynamically regenerate the options panel
   private bool _dirty                         = false; // whether we've been changed since last saving to disk
   private string _configFile                  = null;  // the file on disk to which we're writing
-  internal string _modName                    = null;  // the name of our mod, including any formatting
-  internal string _cleanModName               = null;  // the name of our mod, without formatting
+  private Gunfig _parentGunfig                = null;  // our parent Gunfig, if we're a sub-menu
+  private string _cleanModName                = null;  // the name of our mod, without formatting
+  private dfScrollPanel _cachedConfigPage     = null;  // our cached config page, for submenu navigation purposes
 
-  private Gunfig() { } // cannot construct Gunfig directly, must create / retrieve through Gunfig.Get()
+  internal string _modName                    = null;  // the name of our mod, including any formatting
+  internal Gunfig _BaseGunfig                 => this._parentGunfig ?? this;  // the Gunfig instance actually responsible for managing our options
+
+  protected Gunfig() { } // cannot construct Gunfig directly, must create / retrieve through Gunfig.Get()
 
   internal static void SaveActiveConfigsToDisk()
   {
@@ -126,13 +128,35 @@ public partial class Gunfig
     this._registeredOptions.Add(item);
     if (item._itemType != ItemType.CheckBox && item._itemType != ItemType.ArrowBox)
       return;
-    if (this.Value(item._key) == null) // make sure we have a default value for all loaded configuration options
-      this.Set(item._key, item._values[0]);
+    if (this._BaseGunfig.Value(item._key) == null) // make sure we have a default value for all loaded configuration options
+      this._BaseGunfig.Set(item._key, item._values[0]);
+  }
+
+  private Gunfig GetSubMenu(string menuName)
+  {
+    string cleanMenuName = $"{this._cleanModName}, {menuName.ProcessColors(out Color _)}";
+    for (int i = 0; i < _ActiveConfigs.Count; ++i)
+    {
+      Gunfig config = _ActiveConfigs[i];
+      if (config._cleanModName != cleanMenuName)
+        continue;
+      ETGModConsole.Log($"WARNING: tried to a create a duplicate submenu {menuName} under {this._cleanModName}");
+      return null;
+    }
+
+    GunfigDebug.Log($"  Creating new Gunfig submenu {cleanMenuName} for {this._cleanModName}");
+    Gunfig subGunfig     = new Gunfig();
+    subGunfig._modName      = menuName;  // need to keep colors intact here
+    subGunfig._cleanModName = cleanMenuName;  // need to remove colors here
+    subGunfig._parentGunfig = this._parentGunfig ?? this;  // parent the gunfig to our parent if it exists, or ourself if we're a top-level gunfig
+    _ActiveConfigs.Add(subGunfig);
+    _ConfigAssemblies.Add(Assembly.GetCallingAssembly().FullName); // cache our assembly name to avoid illegal config accesses from other mods
+    return subGunfig;
   }
 
   internal dfScrollPanel RegenConfigPage()
   {
-    dfScrollPanel subOptionsPanel = GunfigMenu.NewOptionsPanel($"{this._modName}");
+    _cachedConfigPage = GunfigMenu.NewOptionsPanel($"{this._modName}");
     foreach (Item item in this._registeredOptions)
     {
       dfControl itemControl;
@@ -140,23 +164,28 @@ public partial class Gunfig
       {
         default:
         case ItemType.Label:
-          itemControl = subOptionsPanel.AddLabel(label: item._label);
+          itemControl = _cachedConfigPage.AddLabel(label: item._label);
           break;
         case ItemType.Button:
-          itemControl = subOptionsPanel.AddButton(label: item._label);
+          itemControl = _cachedConfigPage.AddButton(label: item._label);
           break;
         case ItemType.CheckBox:
-          itemControl = subOptionsPanel.AddCheckBox(label: item._label);
+          itemControl = _cachedConfigPage.AddCheckBox(label: item._label);
           break;
         case ItemType.ArrowBox:
-          itemControl = subOptionsPanel.AddArrowBox(label: item._label, options: item._values, info: item._info);
+          itemControl = _cachedConfigPage.AddArrowBox(label: item._label, options: item._values, info: item._info);
           break;
       }
       if (item._itemType != ItemType.Label) // pure labels don't need a GunfigOption and handle markup processing on site
         itemControl.gameObject.AddComponent<GunfigOption>().Setup(
-          parentConfig: this, key: item._key, values: item._values, update: item._callback, updateType: item._updateType);
+          parentConfig: this._BaseGunfig, key: item._key, values: item._values, update: item._callback, updateType: item._updateType);
     }
-    return subOptionsPanel;
+    return _cachedConfigPage;
+  }
+
+  internal void OpenConfigPage(string key, string value)
+  {
+    GunfigMenu.OpenSubMenu(this._cachedConfigPage);
   }
 
   // Set a config key to a value and return the value
@@ -173,7 +202,7 @@ public partial class Gunfig
 // Private portion of GunfigHelpers
 public static partial class GunfigHelpers
 {
-  internal const string MARKUP_DELIM = "@"; // "#" is used for localization strings, so we need something else
+  private const string MARKUP_DELIM = "@"; // "#" is used for localization strings, so we need something else
 
   // Helpers for processing colors on various dfControls
   internal static Color Dim(this Color c, bool dim) => Color.Lerp(dim ? Color.black : Color.white, c, 0.5f);

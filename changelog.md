@@ -2,6 +2,10 @@
 
 ## 1.0.4 (TBD)
 - Added config option for allowing player to spawn in items and guns directly from Ammonomicon
+- Fixed vanilla bug where keyboard / controller inputs can't navigate single-item menu correctly
+- Added submenus
+- Added ability to back out of one level of menus at a time
+- Added ability to dynamically add options to scroll boxes at run time
 
 ## 1.0.3 (2024-01-19)
 - Switched to an alternate method for loading configuration options early since the intro sequence hook ended up breaking things

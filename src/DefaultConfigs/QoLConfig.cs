@@ -78,15 +78,15 @@ public static class QoLConfig
     // Add a toggle that goes into effect immediately without awaiting confirmation from the player.
     _Gunfig.AddToggle(key: MENU_SOUNDS, updateType: Gunfig.Update.Immediate);
 
-    // Add a colorized label
-    _Gunfig.AddLabel(CHEATS_LABEL.Red());
+    // Add a colorized submenu button
+    Gunfig cheats = _Gunfig.AddSubMenu(CHEATS_LABEL.Magenta());
 
-    // Add a colorized toggle
-    _Gunfig.AddToggle(key: SPAWN_ITEMS, label: SPAWN_ITEMS.Magenta());
+    // Add a colorized toggle to our submenu
+    cheats.AddToggle(key: SPAWN_ITEMS, label: SPAWN_ITEMS.Magenta());
 
     // Add a button with a custom callback when processed. Buttons always trigger their callbacks immediately when pressed.
     // Note that we have to explicitly specify a label to color the button text Red, as we cannot add colors to the key.
-    _Gunfig.AddButton(key: HEROBRINE, label: HEROBRINE.Red(),
+    cheats.AddButton(key: HEROBRINE, label: HEROBRINE.Red(),
       callback: (optionKey, optionValue) => ETGModConsole.Log($"Clicked the {optionKey} button...but you can't disable Herobrine :/"));
 
     // Do some extra setup once all mods are loaded in

@@ -648,7 +648,7 @@ internal static class GunfigMenu
       }
     }
 
-    private static void OpenSubMenu(dfScrollPanel panel)
+    internal static void OpenSubMenu(dfScrollPanel panel)
     {
       _MenuStack.Push(panel);
       dfGUIManager.PushModal(panel);
@@ -683,13 +683,13 @@ internal static class GunfigMenu
 
         // Add submenus for each active mod
         System.Diagnostics.Stopwatch allmodsWatch = System.Diagnostics.Stopwatch.StartNew();
-        foreach (Gunfig Gunfig in Gunfig._ActiveConfigs)
+        foreach (Gunfig gunfig in Gunfig._ActiveConfigs)
         {
-          dfScrollPanel gunfigPage = Gunfig.RegenConfigPage();
-          gunfigPage.Finalize();
-          newOptionsPanel.AddButton(label: Gunfig._modName).gameObject.AddComponent<GunfigOption>().Setup(
-            parentConfig: Gunfig, key: null, values: Gunfig._DefaultValues,
-            updateType: Gunfig.Update.Immediate, update: (_, _) => OpenSubMenu(gunfigPage));
+          gunfig.RegenConfigPage().Finalize();
+          if (gunfig._BaseGunfig == gunfig) // if we are a top level Gunfig, add directly to the MOD OPTIONS menu
+            newOptionsPanel.AddButton(label: gunfig._modName).gameObject.AddComponent<GunfigOption>().Setup(
+              parentConfig: gunfig, key: null, values: Gunfig._DefaultValues,
+              updateType: Gunfig.Update.Immediate, update: gunfig.OpenConfigPage);
         }
 
         // Finalize the options panel
