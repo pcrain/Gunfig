@@ -5,3 +5,4 @@ obj/*
 *.sublime-workspace
 *.csproj.new
 .todo
+*.nupkg

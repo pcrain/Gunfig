@@ -1,11 +1,16 @@
 # Changelog
 
-## 1.0.4 (TBD)
+## 1.1.0 (2024-07-07)
+
+#### API Changes
+- Added ability to create submenus via `AddSubMenu()`
+- Added ability to dynamically add options to scroll boxes at runtime via `AddDynamicOptionToScrollBox()`
+
+#### User Facing Changes
+- Added config option for allowing co-op players to select their character directly from the Breach
 - Added config option for allowing player to spawn in items and guns directly from Ammonomicon
-- Fixed vanilla bug where keyboard / controller inputs can't navigate single-item menu correctly
-- Added submenus
 - Added ability to back out of one level of menus at a time
-- Added ability to dynamically add options to scroll boxes at run time
+- Fixed vanilla bug where keyboard / controller inputs can't navigate single-item menus correctly
 
 ## 1.0.3 (2024-01-19)
 - Switched to an alternate method for loading configuration options early since the intro sequence hook ended up breaking things
