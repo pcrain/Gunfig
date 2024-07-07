@@ -5,6 +5,8 @@ public partial class Gunfig
 {
   /*
      Eventual planned QoL improvements to make, from most to least important:
+      - prompts to save changes are a little unpredictable when navigating sub menus
+      - remember cursor position when backing out of menus
       - can't dynamically enable / disable options at runtime (must restart the game)
       - buttons and labels get written out to gunfig files
 
