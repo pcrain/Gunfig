@@ -707,4 +707,21 @@ internal static class GunfigMenu
         // PrintControlRecursive(GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.m_panel);
         panelBuildWatch.Stop(); GunfigDebug.Log($"  Options panels built in {panelBuildWatch.ElapsedMilliseconds} milliseconds");
     }
+
+    [HarmonyPatch(typeof(FullOptionsMenuController), nameof(FullOptionsMenuController.ToggleToPanel))]
+    /// <summary>Fixes an off-by-one error (preventing single-item menus from navigating up and down properly) by replacing > with >=</summary>
+    private class ToggleToPanelPatch
+    {
+        [HarmonyILManipulator]
+        private static void ToggleToPanelIL(ILContext il)
+        {
+            ILCursor cursor = new ILCursor(il);
+            ILLabel loopBranch = null;
+            if (!cursor.TryGotoNext(MoveType.Before, instr => instr.MatchBgt(out loopBranch)))
+              return;
+            cursor.Remove();
+            cursor.Emit(OpCodes.Bge, loopBranch);
+            return;
+        }
+    }
 }
