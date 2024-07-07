@@ -18,25 +18,33 @@ internal class GunfigOption : MonoBehaviour
   private List<Color> _optionColors              = new();
   private List<Color> _infoColors                = new();
 
-  private static void OnMenuCancel(Action<FullOptionsMenuController> orig, FullOptionsMenuController menu) // hooked to call when menu choices are cancelled
+  [HarmonyPatch(typeof(FullOptionsMenuController), nameof(FullOptionsMenuController.CloseAndRevertChanges))]
+  /// <summary>Resets Gunfig menu options when menus are closed without saving changes</summary>
+  private class OnMenuCancelPatch
   {
-    foreach (GunfigOption option in _PendingUpdatesOnConfirm)
-      option.ResetMenuItemState();
-    _PendingUpdatesOnConfirm.Clear();
-    orig(menu);
+      static void Prefix(FullOptionsMenuController __instance)
+      {
+        foreach (GunfigOption option in _PendingUpdatesOnConfirm)
+          option.ResetMenuItemState();
+        _PendingUpdatesOnConfirm.Clear();
+      }
   }
 
-  private static void OnMenuConfirm(Action<FullOptionsMenuController> orig, FullOptionsMenuController menu) // hooked to call when menu choices are confirmed
+  [HarmonyPatch(typeof(FullOptionsMenuController), nameof(FullOptionsMenuController.CloseAndApplyChanges))]
+  /// <summary>Registers Gunfig changes after saving menu changes</summary>
+  private class OnMenuConfirmPatch
   {
-    foreach (GunfigOption option in _PendingUpdatesOnConfirm)
-    {
-      if (option._updateType == Gunfig.Update.OnConfirm)
-        option.CommitPendingChanges();
-      option._parent.Set(option._lookupKey, option._pendingValue);  // register change in the config handler even if the option's pending changes are deferred
-    }
-    Gunfig.SaveActiveConfigsToDisk();  // save all committed changes
-    _PendingUpdatesOnConfirm.Clear();
-    orig(menu);
+      static void Prefix(FullOptionsMenuController __instance)
+      {
+        foreach (GunfigOption option in _PendingUpdatesOnConfirm)
+        {
+          if (option._updateType == Gunfig.Update.OnConfirm)
+            option.CommitPendingChanges();
+          option._parent.Set(option._lookupKey, option._pendingValue);  // register change in the config handler even if the option's pending changes are deferred
+        }
+        Gunfig.SaveActiveConfigsToDisk();  // save all committed changes
+        _PendingUpdatesOnConfirm.Clear();
+      }
   }
 
   private static void OnGotFocus(Action<BraveOptionsMenuItem, dfControl, dfFocusEventArgs> orig, BraveOptionsMenuItem menuItem, dfControl control, dfFocusEventArgs args)

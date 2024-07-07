@@ -8,6 +8,7 @@ internal static class GunfigMenu
     private const string _MOD_MENU_LABEL           = "MOD CONFIG";
     private const string _MOD_MENU_TITLE           = "Modded Options";
     private static List<dfControl> _RegisteredTabs = new();
+    private static Stack<dfScrollPanel> _MenuStack = new();
 
     internal class CustomCheckboxHandler : MonoBehaviour
       { public PropertyChangedEventHandler<bool> onChanged; }
@@ -66,18 +67,6 @@ internal static class GunfigMenu
       new Hook(
           typeof(BraveOptionsMenuItem).GetMethod("DoSelectedAction", BindingFlags.Instance | BindingFlags.NonPublic),
           typeof(GunfigMenu).GetMethod("DoSelectedAction", BindingFlags.Static | BindingFlags.NonPublic)
-          );
-
-      // Update config options when menu choices are cancelled
-      new Hook(
-          typeof(FullOptionsMenuController).GetMethod("CloseAndRevertChanges", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(GunfigOption).GetMethod("OnMenuCancel", BindingFlags.Static | BindingFlags.NonPublic)
-          );
-
-      // Update config options when menu choices are confirmed
-      new Hook(
-          typeof(FullOptionsMenuController).GetMethod("CloseAndApplyChanges", BindingFlags.Instance | BindingFlags.NonPublic),
-          typeof(GunfigOption).GetMethod("OnMenuConfirm", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Update custom colors on focus gained
@@ -374,7 +363,7 @@ internal static class GunfigMenu
       return self;
     }
 
-    private static void CreateGunfigButton(this PreOptionsMenuController preOptions, dfScrollPanel newOptionsPanel)
+    private static void CreateGunfigButton(this PreOptionsMenuController preOptions, dfScrollPanel gunfigMainPanel)
     {
         dfPanel panel        = preOptions.m_panel;
         dfButton prevButton  = panel.Find<dfButton>("AudioTab (1)");
@@ -402,7 +391,8 @@ internal static class GunfigMenu
         newButton.name = _MOD_MENU_LABEL;
         newButton.Position = newButton.Position.WithY(maxY);  // Add it to the original position of the final button
         newButton.Click += (control, args) => {
-          preOptions.ToggleToPanel(newOptionsPanel, true, force: true); // force true so it works even if the pre-options menu is invisible
+          _MenuStack.Clear();
+          OpenSubMenu(gunfigMainPanel);
         };
         newButton.MouseEnter += FocusControl;
         newButton.GotFocus += PlayMenuCursorSound;
@@ -660,8 +650,10 @@ internal static class GunfigMenu
 
     private static void OpenSubMenu(dfScrollPanel panel)
     {
+      _MenuStack.Push(panel);
+      dfGUIManager.PushModal(panel);
       GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>(
-        ).OptionsMenu.PreOptionsMenu.ToggleToPanel(panel, true, force: true); // force true so it works even if it's invisible
+        ).OptionsMenu.PreOptionsMenu.ToggleToPanel(panel, val: true, force: true); // force true so it works even if it's invisible
     }
 
     private static void SetOptionsPageTitle(string title)
@@ -706,6 +698,24 @@ internal static class GunfigMenu
         // Dissect.DumpFieldsAndProperties<dfScrollPanel>(newOptionsPanel);
         // PrintControlRecursive(GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.m_panel);
         panelBuildWatch.Stop(); GunfigDebug.Log($"  Options panels built in {panelBuildWatch.ElapsedMilliseconds} milliseconds");
+    }
+
+    [HarmonyPatch(typeof(FullOptionsMenuController), nameof(FullOptionsMenuController.UpAllLevels))]
+    /// <summary>Allow backing out of modded menus one level at a time</summary>
+    private class BackOneLevelPatch
+    {
+        static bool Prefix(FullOptionsMenuController __instance)
+        {
+          if (_MenuStack.Count == 0)
+            return true;     // call the original method if we don't have anything in our menu stack
+          dfScrollPanel oldPanel = _MenuStack.Pop();
+          if (_MenuStack.Count == 0)
+            return true;     // call the original method (no need to pop the main options menu modal since it handles that itself)
+          dfGUIManager.PopModal();
+          __instance.cloneOptions = GameOptions.CloneOptions(GameManager.Options); // reset vanilla options to prevent vanilla error messgaes (maybe slow -> suppress later if needed)
+          __instance.PreOptionsMenu.ToggleToPanel(_MenuStack.Peek(), val: true, force: true); // force true so it works even if it's invisible
+          return false; // we just want to go back one level, so skip the original method
+        }
     }
 
     [HarmonyPatch(typeof(FullOptionsMenuController), nameof(FullOptionsMenuController.ToggleToPanel))]
