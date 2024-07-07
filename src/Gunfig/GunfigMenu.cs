@@ -650,6 +650,8 @@ internal static class GunfigMenu
 
     internal static void OpenSubMenu(dfScrollPanel panel)
     {
+      if (_MenuStack.Count > 0)
+        _MenuStack.Peek().IsVisible = false;
       _MenuStack.Push(panel);
       dfGUIManager.PushModal(panel);
       GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>(
@@ -708,10 +710,12 @@ internal static class GunfigMenu
         {
           if (_MenuStack.Count == 0)
             return true;     // call the original method if we don't have anything in our menu stack
-          dfScrollPanel oldPanel = _MenuStack.Pop();
+          _MenuStack.Pop().IsVisible = false; // hide the latest menu on the stack
           if (_MenuStack.Count == 0)
             return true;     // call the original method (no need to pop the main options menu modal since it handles that itself)
-          dfGUIManager.PopModal();
+          dfGUIManager.PopModalToControl(_MenuStack.Peek(), false);
+          if (Foyer.DoMainMenu)
+            __instance.ShwoopOpen(); // fixes weird scrolling issue when backing out of submenus from the title screen, but causes flickering
           __instance.cloneOptions = GameOptions.CloneOptions(GameManager.Options); // reset vanilla options to prevent vanilla error messgaes (maybe slow -> suppress later if needed)
           __instance.PreOptionsMenu.ToggleToPanel(_MenuStack.Peek(), val: true, force: true); // force true so it works even if it's invisible
           return false; // we just want to go back one level, so skip the original method
