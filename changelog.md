@@ -1,5 +1,9 @@
 # Changelog
 
+## TBD
+
+- Added config option to open Ammonomicon instantly
+
 ## 1.1.0 (2024-07-07)
 
 #### API Changes

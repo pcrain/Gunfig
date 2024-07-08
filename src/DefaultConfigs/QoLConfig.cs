@@ -23,6 +23,7 @@ public static class QoLConfig
   internal const string DAMAGE_NUMS     = "Show Damage Numbers";
   internal const string CHEATS_LABEL    = "Cheats / Debug Stuff";
   internal const string SPAWN_ITEMS     = "Spawn Items from Ammonomicon";
+  internal const string FAST_POKEDEX    = "Ammonmicon Opens Instantly";
 
   // Note the formatting applied to individual labels. Formatting can be applied to all menus strings, but NOT to option keys.
   private static readonly List<string> _QUICKSTART_OPTIONS = new() {
@@ -74,6 +75,7 @@ public static class QoLConfig
     _Gunfig.AddToggle(key: STATIC_CAMERA);
     _Gunfig.AddToggle(key: HEALTH_BARS);
     _Gunfig.AddToggle(key: DAMAGE_NUMS);
+    _Gunfig.AddToggle(key: FAST_POKEDEX);
 
     // Add a toggle that goes into effect immediately without awaiting confirmation from the player.
     _Gunfig.AddToggle(key: MENU_SOUNDS, updateType: Gunfig.Update.Immediate);
@@ -416,6 +418,31 @@ public static class QoLConfig
         playerController.PlayerIDX = 1;
         LootEngine.DoDefaultItemPoof(poofPos);
         return playerController;
+      }
+  }
+
+  [HarmonyPatch(typeof(AmmonomiconController), nameof(AmmonomiconController.HandleOpenAmmonomicon), MethodType.Enumerator)]
+  private class FastAmmonomiconPatch
+  {
+      [HarmonyILManipulator]
+      private static void FastAmmonomiconIL(ILContext il/*, MethodBase original*/)
+      {
+          ILCursor cursor = new ILCursor(il);
+          // Type ot = original.DeclaringType;
+          // FieldInfo localThis = AccessTools.GetDeclaredFields(ot).Find(f => f.Name == "$this");
+
+          if (!cursor.TryGotoNext(MoveType.After, instr => instr.MatchCall<AmmonomiconController>(nameof(AmmonomiconController.GetAnimationLength))))
+              return;
+          cursor.Emit(OpCodes.Call, typeof(FastAmmonomiconPatch).GetMethod(nameof(FastAmmonomiconPatch.AdjustAnimationSpeed), BindingFlags.Static | BindingFlags.NonPublic));
+          return;
+      }
+
+      private static float AdjustAnimationSpeed(float oldValue)
+      {
+          if (_Gunfig.Disabled(FAST_POKEDEX))
+            return oldValue;
+          AkSoundEngine.StopAll(AmmonomiconController.Instance.gameObject);
+          return 0f;
       }
   }
 }
