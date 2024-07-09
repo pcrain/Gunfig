@@ -427,18 +427,21 @@ public static class QoLConfig
   private class FastAmmonomiconPatch
   {
       [HarmonyILManipulator]
-      private static void FastAmmonomiconIL(ILContext il)
+      private static void FastAmmonomiconIL(ILContext il, MethodBase original)
       {
           ILCursor cursor = new ILCursor(il);
+          Type ot = original.DeclaringType; // get type of the IEnumerator itself
           if (!cursor.TryGotoNext(MoveType.After, instr => instr.MatchCall<AmmonomiconController>(nameof(AmmonomiconController.GetAnimationLength))))
               return;
+          cursor.Emit(OpCodes.Ldarg_0); // load the IEnumerator instance
+          cursor.Emit(OpCodes.Ldfld, AccessTools.GetDeclaredFields(ot).Find(f => f.Name == "isDeath")); // load actual isDeath field from the IEnumerator instance
           cursor.Emit(OpCodes.Call, typeof(FastAmmonomiconPatch).GetMethod(nameof(FastAmmonomiconPatch.AdjustAnimationSpeed), BindingFlags.Static | BindingFlags.NonPublic));
           return;
       }
 
-      private static float AdjustAnimationSpeed(float oldValue)
+      private static float AdjustAnimationSpeed(float oldValue, bool isDeath)
       {
-          if (_Gunfig.Disabled(FAST_POKEDEX))
+          if (isDeath || _Gunfig.Disabled(FAST_POKEDEX))
             return oldValue;
           AkSoundEngine.StopAll(AmmonomiconController.Instance.gameObject);
           return 0f;
@@ -464,7 +467,6 @@ public static class QoLConfig
       }
   }
 
-  // UpdateInventoryMaxItems
   [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.UpdateInventoryMaxItems))]
   private class UpdateInventoryMaxItemsPatch
   {
