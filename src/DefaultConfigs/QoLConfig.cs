@@ -25,6 +25,7 @@ public static class QoLConfig
   internal const string SPAWN_ITEMS     = "Spawn Items from Ammonomicon";
   internal const string FAST_POKEDEX    = "Ammonmicon Opens Instantly";
   internal const string ALL_THE_ITEMS   = "Unlimited Active Items";
+  internal const string INFINITE_META   = "Infinite Hegemony Credits";
 
   // Note the formatting applied to individual labels. Formatting can be applied to all menus strings, but NOT to option keys.
   private static readonly List<string> _QUICKSTART_OPTIONS = new() {
@@ -87,6 +88,7 @@ public static class QoLConfig
     // Add colorized toggles to our submenu
     cheats.AddToggle(key: SPAWN_ITEMS, label: SPAWN_ITEMS.Magenta());
     cheats.AddToggle(key: ALL_THE_ITEMS, label: ALL_THE_ITEMS.Magenta());
+    cheats.AddToggle(key: INFINITE_META, label: INFINITE_META.Magenta());
 
     // Add a button with a custom callback when processed. Buttons always trigger their callbacks immediately when pressed.
     // Note that we have to explicitly specify a label to color the button text Red, as we cannot add colors to the key.
@@ -475,6 +477,63 @@ public static class QoLConfig
           if (_Gunfig.Enabled(ALL_THE_ITEMS))
             return false; // skip the original method if we have unlimited item slots, since we never need to drop anything
           return true; // call the original method
+      }
+  }
+
+  [HarmonyPatch(typeof(GameStatsManager), nameof(GameStatsManager.GetPlayerStatValue))]
+  private class HaveInfiniteCreditsPatch
+  {
+      static bool Prefix(GameStatsManager __instance, TrackedStats stat, ref float __result)
+      {
+        if (stat != TrackedStats.META_CURRENCY || _Gunfig.Disabled(INFINITE_META))
+          return true; // call the original method
+        __result = 99999;
+        return false; // skip the original method
+      }
+  }
+
+  [HarmonyPatch(typeof(GameStatsManager), nameof(GameStatsManager.SetStat))]
+  private class DontSetCreditsPatch
+  {
+      static bool Prefix(GameStatsManager __instance, TrackedStats stat, float value)
+      {
+          if (stat != TrackedStats.META_CURRENCY || _Gunfig.Disabled(INFINITE_META))
+            return true;     // call the original method
+          return false; // skip the original method
+      }
+  }
+
+  [HarmonyPatch(typeof(GameStatsManager), nameof(GameStatsManager.RegisterStatChange))]
+  private class DontRegisterCreditsPatch
+  {
+      static bool Prefix(GameStatsManager __instance, TrackedStats stat, float value)
+      {
+          if (stat != TrackedStats.META_CURRENCY || _Gunfig.Disabled(INFINITE_META))
+            return true;     // call the original method
+          return false; // skip the original method
+      }
+  }
+
+  [HarmonyPatch(typeof(SimpleStatLabel), nameof(SimpleStatLabel.Update))]
+  private class InfiniteCreditsOnHUDPatch
+  {
+      static void Postfix(SimpleStatLabel __instance)
+      {
+        if (!__instance.m_label || !__instance.m_label.IsVisible || __instance.stat != TrackedStats.META_CURRENCY || _Gunfig.Disabled(INFINITE_META))
+          return;
+        __instance.m_label.AutoHeight = true;
+        __instance.m_label.ProcessMarkup = true;
+        __instance.m_label.Text = "[sprite \"infinite-big\"]";
+      }
+  }
+
+  [HarmonyPatch(typeof(AmmonomiconDeathPageController), nameof(AmmonomiconDeathPageController.GetNumMetasToQuickRestart))]
+  private class FreeQuickRestartPatch
+  {
+      static void Postfix(AmmonomiconDeathPageController __instance, QuickRestartOptions __result)
+      {
+        if (_Gunfig.Enabled(INFINITE_META))
+          __result.NumMetas = 0;
       }
   }
 }

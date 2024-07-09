@@ -4,6 +4,7 @@
 
 - Added config option for opening Ammonomicon instantly
 - Added config option for unlimited active item slots
+- Added config option for infinite Hegemony Credits
 
 ## 1.1.0 (2024-07-07)
 
