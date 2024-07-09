@@ -24,6 +24,7 @@ public static class QoLConfig
   internal const string CHEATS_LABEL    = "Cheats / Debug Stuff";
   internal const string SPAWN_ITEMS     = "Spawn Items from Ammonomicon";
   internal const string FAST_POKEDEX    = "Ammonmicon Opens Instantly";
+  internal const string ALL_THE_ITEMS   = "Unlimited Active Items";
 
   // Note the formatting applied to individual labels. Formatting can be applied to all menus strings, but NOT to option keys.
   private static readonly List<string> _QUICKSTART_OPTIONS = new() {
@@ -83,8 +84,9 @@ public static class QoLConfig
     // Add a colorized submenu button
     Gunfig cheats = _Gunfig.AddSubMenu(CHEATS_LABEL.Magenta());
 
-    // Add a colorized toggle to our submenu
+    // Add colorized toggles to our submenu
     cheats.AddToggle(key: SPAWN_ITEMS, label: SPAWN_ITEMS.Magenta());
+    cheats.AddToggle(key: ALL_THE_ITEMS, label: ALL_THE_ITEMS.Magenta());
 
     // Add a button with a custom callback when processed. Buttons always trigger their callbacks immediately when pressed.
     // Note that we have to explicitly specify a label to color the button text Red, as we cannot add colors to the key.
@@ -425,12 +427,9 @@ public static class QoLConfig
   private class FastAmmonomiconPatch
   {
       [HarmonyILManipulator]
-      private static void FastAmmonomiconIL(ILContext il/*, MethodBase original*/)
+      private static void FastAmmonomiconIL(ILContext il)
       {
           ILCursor cursor = new ILCursor(il);
-          // Type ot = original.DeclaringType;
-          // FieldInfo localThis = AccessTools.GetDeclaredFields(ot).Find(f => f.Name == "$this");
-
           if (!cursor.TryGotoNext(MoveType.After, instr => instr.MatchCall<AmmonomiconController>(nameof(AmmonomiconController.GetAnimationLength))))
               return;
           cursor.Emit(OpCodes.Call, typeof(FastAmmonomiconPatch).GetMethod(nameof(FastAmmonomiconPatch.AdjustAnimationSpeed), BindingFlags.Static | BindingFlags.NonPublic));
@@ -443,6 +442,37 @@ public static class QoLConfig
             return oldValue;
           AkSoundEngine.StopAll(AmmonomiconController.Instance.gameObject);
           return 0f;
+      }
+  }
+
+  [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.GetEquippedWith))]
+  private class UnlimitedActiveItemsPatch
+  {
+      [HarmonyILManipulator]
+      private static void UnlimitedActiveItemsIL(ILContext il)
+      {
+          ILCursor cursor = new ILCursor(il);
+          if (!cursor.TryGotoNext(MoveType.Before, instr => instr.MatchStloc(6))) // V_6 == num3 == max active items we can carry
+              return;
+
+          cursor.Emit(OpCodes.Call, typeof(UnlimitedActiveItemsPatch).GetMethod(nameof(UnlimitedActiveItemsPatch.ActiveItemCapacity), BindingFlags.Static | BindingFlags.NonPublic));
+      }
+
+      private static int ActiveItemCapacity(int oldValue)
+      {
+        return _Gunfig.Enabled(ALL_THE_ITEMS) ? 9999 : oldValue;
+      }
+  }
+
+  // UpdateInventoryMaxItems
+  [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.UpdateInventoryMaxItems))]
+  private class UpdateInventoryMaxItemsPatch
+  {
+      static bool Prefix(PlayerController __instance)
+      {
+          if (_Gunfig.Enabled(ALL_THE_ITEMS))
+            return false; // skip the original method if we have unlimited item slots, since we never need to drop anything
+          return true; // call the original method
       }
   }
 }
