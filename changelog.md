@@ -1,6 +1,6 @@
 # Changelog
 
-## TBD
+## 1.1.1 (2024-07-09)
 
 - Added config option for opening Ammonomicon instantly
 - Added config option for unlimited active item slots

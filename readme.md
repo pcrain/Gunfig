@@ -15,6 +15,10 @@ If you're using a mod manager, any mod that requires Gunfig should automatically
   + static camera while aiming
   + show enemy health bars
   + show enemy damage numbers
-  + enable spawning items and guns in from the Ammonomicon
+  + open Ammonomicon instantly
   + better menu sounds (e.g., when toggling options or changing sliders)
   
+The default Gunfig also includes several debug / cheat options, including:
+  + spawn in items and guns from the Ammonomicon
+  + unlimited active item slots
+  + infinite Hegemony Credits
