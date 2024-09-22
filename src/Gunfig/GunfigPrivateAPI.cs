@@ -11,7 +11,6 @@ public partial class Gunfig
       - buttons and labels get written out to gunfig files
 
      Unimportant stuff I probably won't do:
-      - modded config menu breaks when returning to the main menu from Breach (rare to run into, extremely hard to fix, and fixes itself starting a new run)
       - double menu sounds are played when navigating to new pages due to onfocus events for buttons playing sounds (tricky to fix and barely noticeable)
       - haven't implemented progress / fill bars (not particularly useful outside vanilla volume controls, so not in a hurry to implement this)
       - haven't implemented sprites for options (e.g. like vanilla crosshair selection) (very hard, requires modifying sprite atlas, and it is minimally useful)

@@ -9,6 +9,8 @@ internal static class GunfigMenu
     private const string _MOD_MENU_TITLE           = "Modded Options";
     private static List<dfControl> _RegisteredTabs = new();
     private static Stack<dfScrollPanel> _MenuStack = new();
+    private static dfScrollPanel _GunfigMainPanel  = null;
+    private static dfScrollPanel _RefPanel         = null;
 
     internal class CustomCheckboxHandler : MonoBehaviour
       { public PropertyChangedEventHandler<bool> onChanged; }
@@ -91,7 +93,7 @@ internal static class GunfigMenu
     {
       if (GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.PreOptionsMenu is PreOptionsMenuController preOptions)
         if (!preOptions.m_panel.Find<dfButton>(_MOD_MENU_LABEL))
-          RebuildOptionsPanels();
+          preOptions.CreateGunfigButton();
       orig(mm);
     }
 
@@ -99,7 +101,7 @@ internal static class GunfigMenu
     {
       if (GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.PreOptionsMenu is PreOptionsMenuController preOptions)
         if (!preOptions.m_panel.Find<dfButton>(_MOD_MENU_LABEL))
-          RebuildOptionsPanels();
+          preOptions.CreateGunfigButton();
       orig(gm);
     }
 
@@ -363,8 +365,10 @@ internal static class GunfigMenu
       return self;
     }
 
-    private static void CreateGunfigButton(this PreOptionsMenuController preOptions, dfScrollPanel gunfigMainPanel)
+    private static void CreateGunfigButton(this PreOptionsMenuController preOptions)
     {
+        _GunfigMainPanel = null; // nuke the old main panel and force rebuild it later when requested
+
         dfPanel panel        = preOptions.m_panel;
         dfButton prevButton  = panel.Find<dfButton>("AudioTab (1)");
         dfControl nextButton = prevButton.GetComponent<UIKeyControls>().down;
@@ -390,10 +394,7 @@ internal static class GunfigMenu
         newButton.Text = _MOD_MENU_LABEL;
         newButton.name = _MOD_MENU_LABEL;
         newButton.Position = newButton.Position.WithY(maxY);  // Add it to the original position of the final button
-        newButton.Click += (control, args) => {
-          _MenuStack.Clear();
-          OpenSubMenu(gunfigMainPanel);
-        };
+        newButton.Click += OpenGunfigMainMenu;
         newButton.MouseEnter += FocusControl;
         newButton.GotFocus += PlayMenuCursorSound;
 
@@ -412,12 +413,45 @@ internal static class GunfigMenu
         panel.PerformLayout();
     }
 
+    private static void OpenGunfigMainMenu(dfControl control, dfMouseEventArgs args)
+    {
+      _MenuStack.Clear();
+      RegenerateGunfigMainPanel();
+      OpenSubMenu(_GunfigMainPanel);
+    }
+
+    private static void RegenerateGunfigMainPanel()
+    {
+      if (_GunfigMainPanel != null)
+        return;
+      // Cache all the controls we'll be copying for faster access (needs to be done every time panels are rebuilt each run)
+      ReCacheControlsAndTabs();
+      // Add submenus for each active mod
+      System.Diagnostics.Stopwatch allmodsWatch = System.Diagnostics.Stopwatch.StartNew();
+      _GunfigMainPanel = NewOptionsPanel(_MOD_MENU_TITLE);
+      foreach (Gunfig gunfig in Gunfig._ActiveConfigs)
+      {
+        gunfig.RegenConfigPage().Finalize();
+        if (gunfig._BaseGunfig == gunfig) // if we are a top level Gunfig, add directly to the MOD OPTIONS menu
+          _GunfigMainPanel.AddButton(label: gunfig._modName).gameObject.AddComponent<GunfigOption>().Setup(
+            parentConfig: gunfig, key: null, values: Gunfig._DefaultValues,
+            updateType: Gunfig.Update.Immediate, update: gunfig.OpenConfigPage);
+      }
+      // Finalize the options panel
+      _GunfigMainPanel.Finalize();
+      allmodsWatch.Stop(); GunfigDebug.Log($"  Options panels built in {allmodsWatch.ElapsedMilliseconds} milliseconds");
+    }
+
     internal static dfScrollPanel NewOptionsPanel(string name)
     {
       FullOptionsMenuController optionsMenu = GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu;
 
       // Get a reference options panel
-      dfScrollPanel refPanel = optionsMenu.TabVideo;
+      _RefPanel ??= ResourceManager.LoadAssetBundle("shared_auto_001")
+        .LoadAsset<GameObject>("UI Root")
+        .GetComponentInChildren<FullOptionsMenuController>()
+        .TabVideo;
+      dfScrollPanel refPanel = _RefPanel;
 
       // Add our options panel to the PauseMenuController and copy some basic attributes from our reference
       dfScrollPanel newPanel = optionsMenu.m_panel.AddControl<dfScrollPanel>();
@@ -473,11 +507,12 @@ internal static class GunfigMenu
       newPanel.InverseClipChildren  = true;
       newPanel.ScrollPadding        = new RectOffset(0,0,0,0);
       newPanel.AutoScrollPadding    = new RectOffset(0,0,0,0);
+
       newPanel.Size                -= new Vector2(0, 50f);  //TODO: figure out why this offset is wrong in the first place
-      newPanel.Position            -= new Vector3(0, 50f, 0f);  //TODO: figure out why this offset is wrong in the first place
+      newPanel.Position             = newPanel.Position.WithY(270f);  //TODO: figure out why this offset is wrong in the first place
 
       newPanel.name = name;
-      newPanel.Enable();  // necessary to make sure our children are enabled when the panel is first loaderd
+      newPanel.Enable();  // necessary to make sure our children are enabled when the panel is first loaded
 
       // Add it to our known panels so we can make visible / invisible as necessary
       _RegisteredTabs.Add(newPanel);
@@ -667,39 +702,6 @@ internal static class GunfigMenu
       titleControl.Color = color;
     }
 
-    private static void RebuildOptionsPanels()
-    {
-        if (GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.PreOptionsMenu is not PreOptionsMenuController preOptions)
-          return;
-
-        System.Diagnostics.Stopwatch panelBuildWatch = System.Diagnostics.Stopwatch.StartNew();
-
-        // Cache all the controls we'll be copying for faster access (needs to be done every time panels are rebuilt each run)
-        ReCacheControlsAndTabs();
-
-        // Create the new modded options panel and register the button on the pre-options menu
-        System.Diagnostics.Stopwatch mainmenuWatch = System.Diagnostics.Stopwatch.StartNew();
-        dfScrollPanel newOptionsPanel = NewOptionsPanel(_MOD_MENU_TITLE);
-        preOptions.CreateGunfigButton(newOptionsPanel);
-
-        // Add submenus for each active mod
-        System.Diagnostics.Stopwatch allmodsWatch = System.Diagnostics.Stopwatch.StartNew();
-        foreach (Gunfig gunfig in Gunfig._ActiveConfigs)
-        {
-          gunfig.RegenConfigPage().Finalize();
-          if (gunfig._BaseGunfig == gunfig) // if we are a top level Gunfig, add directly to the MOD OPTIONS menu
-            newOptionsPanel.AddButton(label: gunfig._modName).gameObject.AddComponent<GunfigOption>().Setup(
-              parentConfig: gunfig, key: null, values: Gunfig._DefaultValues,
-              updateType: Gunfig.Update.Immediate, update: gunfig.OpenConfigPage);
-        }
-
-        // Finalize the options panel
-        newOptionsPanel.Finalize();
-
-        // Dissect.DumpFieldsAndProperties<dfScrollPanel>(newOptionsPanel);
-        // PrintControlRecursive(GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu.m_panel);
-        panelBuildWatch.Stop(); GunfigDebug.Log($"  Options panels built in {panelBuildWatch.ElapsedMilliseconds} milliseconds");
-    }
 
     [HarmonyPatch(typeof(FullOptionsMenuController), nameof(FullOptionsMenuController.UpAllLevels))]
     /// <summary>Allow backing out of modded menus one level at a time</summary>

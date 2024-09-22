@@ -3,6 +3,9 @@
 ## 1.1.2 (TBD)
 
 - Prevented Cultist from disappearing from Breach while Breach co-op character select is enabled
+- Fixed mod menu breaking when attempting to open it after returning to the main menu
+- Optimized panel rebuild time by caching a reference options menu for faster lookups
+- Prevented some unused debug stopwatches from running in the background in release builds
 
 ## 1.1.1 (2024-07-09)
 
