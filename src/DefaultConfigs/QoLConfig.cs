@@ -536,6 +536,16 @@ public static class QoLConfig
           __result.NumMetas = 0;
       }
   }
+
+  /// <summary>Prevent Cultist from disappearing from Breach when Breach co-op character select is enabled</summary>
+  [HarmonyPatch(typeof(FoyerCharacterSelectFlag), nameof(FoyerCharacterSelectFlag.OnCoopChangedCallback))]
+  private class FoyerOnCoopChangedCallbackPatch
+  {
+      static bool Prefix(FoyerCharacterSelectFlag __instance)
+      {
+          return _Gunfig.Disabled(COOP_FOYER_SEL); // call the original method iff we aren't allowing coop character selecting
+      }
+  }
 }
 
 // Scrapped for now:

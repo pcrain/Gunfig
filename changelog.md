@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2 (TBD)
+
+- Prevented Cultist from disappearing from Breach while Breach co-op character select is enabled
+
 ## 1.1.1 (2024-07-09)
 
 - Added config option for opening Ammonomicon instantly
