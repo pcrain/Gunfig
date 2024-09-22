@@ -307,13 +307,27 @@ public static class QoLConfig
     return orig(cam, currentBasePosition, isUpdate, allowAimOffset);
   }
 
+  private static bool HasPassive(this PlayerController pc, int pickupId)
+  {
+    int n = pc.passiveItems.Count;
+    for (int i = 0; i < n; i++)
+      if (pc.passiveItems[i].PickupObjectId == pickupId)
+        return true;
+    return false;
+  }
+
   private static GameObject VFXHealthBar = null;
   private static readonly int ScouterId = 821;
   private static void DoHealthEffects(float damageAmount, bool fatal, HealthHaver target)
   {
-    if (GameManager.Instance.PrimaryPlayer.HasPassiveItem(ScouterId))
+    bool showHealth = _Gunfig.Enabled(HEALTH_BARS);
+    bool showDamage = _Gunfig.Enabled(DAMAGE_NUMS);
+
+    if (!showHealth && !showDamage)
       return;
-    if (GameManager.Instance.CurrentGameType == GameManager.GameType.COOP_2_PLAYER && GameManager.Instance.SecondaryPlayer.HasPassiveItem(ScouterId))
+    if (GameManager.Instance.PrimaryPlayer.HasPassive(ScouterId))
+      return;
+    if (GameManager.Instance.CurrentGameType == GameManager.GameType.COOP_2_PLAYER && GameManager.Instance.SecondaryPlayer.HasPassive(ScouterId))
       return;
 
     VFXHealthBar ??= (PickupObjectDatabase.GetById(ScouterId) as RatchetScouterItem).VFXHealthBar;
@@ -325,7 +339,7 @@ public static class QoLConfig
     {
       worldPosition = body.UnitCenter.ToVector3ZisY();
       heightOffGround = worldPosition.y - body.UnitBottomCenter.y;
-      if (_Gunfig.Enabled(HEALTH_BARS) && (bool)body.healthHaver && !body.healthHaver.HasHealthBar && !body.healthHaver.HasRatchetHealthBar && !body.healthHaver.IsBoss)
+      if (showHealth && (bool)body.healthHaver && !body.healthHaver.HasHealthBar && !body.healthHaver.HasRatchetHealthBar && !body.healthHaver.IsBoss)
       {
         body.healthHaver.HasRatchetHealthBar = true;
         UnityEngine.Object.Instantiate(VFXHealthBar).GetComponent<SimpleHealthBarController>().Initialize(body, body.healthHaver);
@@ -338,7 +352,7 @@ public static class QoLConfig
         heightOffGround = worldPosition.y - actor.sprite.WorldBottomCenter.y;
     }
 
-    if (_Gunfig.Enabled(DAMAGE_NUMS))
+    if (showDamage)
       GameUIRoot.Instance.DoDamageNumber(worldPosition, heightOffGround, Mathf.Max(Mathf.RoundToInt(damageAmount), 1));
   }
 

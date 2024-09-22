@@ -6,6 +6,7 @@
 - Fixed mod menu breaking when attempting to open it after returning to the main menu
 - Optimized panel rebuild time by caching a reference options menu for faster lookups
 - Prevented some unused debug stopwatches from running in the background in release builds
+- Eliminated some unnecessary memory allocations in logic for showing enemy health bars
 
 ## 1.1.1 (2024-07-09)
 
