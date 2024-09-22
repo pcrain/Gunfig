@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.2 (TBD)
+## 1.1.2 (2024-09-22)
 
 - Prevented Cultist from disappearing from Breach while Breach co-op character select is enabled
 - Fixed mod menu breaking when attempting to open it after returning to the main menu
