@@ -142,6 +142,7 @@ public static class Dissect // reflection helper methods
                 Console.WriteLine(" prop {0} = {1} -> {2}", f.Name, "ERROR", "ERROR");
             }
         }
+        Console.WriteLine("");
     }
 
     public static void DumpILInstruction(this Instruction c)

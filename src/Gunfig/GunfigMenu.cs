@@ -339,6 +339,24 @@ internal static class GunfigMenu
         label.Padding           = otherLabel.Padding;
         label.TabSize           = otherLabel.TabSize;
       }
+      if (self is dfScrollbar scrollbar && other is dfScrollbar otherScrollbar)
+      {
+        scrollbar.ControlledByRightStick = otherScrollbar.ControlledByRightStick;
+        scrollbar.atlas                  = otherScrollbar.atlas;
+        scrollbar.orientation            = otherScrollbar.orientation;
+        scrollbar.rawValue               = otherScrollbar.rawValue;
+        scrollbar.minValue               = otherScrollbar.minValue;
+        scrollbar.maxValue               = otherScrollbar.maxValue;
+        scrollbar.stepSize               = otherScrollbar.stepSize;
+        scrollbar.scrollSize             = otherScrollbar.scrollSize;
+        scrollbar.increment              = otherScrollbar.increment;
+        scrollbar.thumb                  = scrollbar.AddControl<dfSprite>().CopyAttributes(otherScrollbar.thumb as dfSprite);
+        scrollbar.track                  = scrollbar.AddControl<dfSprite>().CopyAttributes(otherScrollbar.track as dfSprite);
+        scrollbar.incButton              = otherScrollbar.incButton;
+        scrollbar.decButton              = otherScrollbar.decButton;
+        scrollbar.thumbPadding           = otherScrollbar.thumbPadding;
+        scrollbar.autoHide               = otherScrollbar.autoHide;
+      }
       self.AllowSignalEvents = other.AllowSignalEvents;
       self.MinimumSize       = other.MinimumSize;
       self.MaximumSize       = other.MaximumSize;
@@ -455,6 +473,7 @@ internal static class GunfigMenu
 
       // Add our options panel to the PauseMenuController and copy some basic attributes from our reference
       dfScrollPanel newPanel = optionsMenu.m_panel.AddControl<dfScrollPanel>();
+        newPanel.SuspendLayout();
         newPanel.UseScrollMomentum    = refPanel.UseScrollMomentum;
         newPanel.ScrollWithArrowKeys  = refPanel.ScrollWithArrowKeys;
         newPanel.Atlas                = refPanel.Atlas;
@@ -467,7 +486,7 @@ internal static class GunfigMenu
         newPanel.ScrollPosition       = refPanel.ScrollPosition;
         newPanel.ScrollWheelAmount    = refPanel.ScrollWheelAmount;
         newPanel.HorzScrollbar        = refPanel.HorzScrollbar;
-        newPanel.VertScrollbar        = refPanel.VertScrollbar;
+        newPanel.VertScrollbar        = optionsMenu.TabVideo.VertScrollbar; //HACK: creating our own scrollbar makes it invisible because...idk...painful to fight
         newPanel.WheelScrollDirection = refPanel.WheelScrollDirection;
         newPanel.UseVirtualScrolling  = refPanel.UseVirtualScrolling;
         newPanel.VirtualScrollingTile = refPanel.VirtualScrollingTile;
@@ -509,9 +528,11 @@ internal static class GunfigMenu
       newPanel.AutoScrollPadding    = new RectOffset(0,0,0,0);
 
       newPanel.Size                -= new Vector2(0, 50f);  //TODO: figure out why this offset is wrong in the first place
-      newPanel.Position             = newPanel.Position.WithY(270f);  //TODO: figure out why this offset is wrong in the first place
+      newPanel.ResumeLayout();
+      newPanel.Position             = refPanel.Position.WithY(270f);  //TODO: figure out why this offset is wrong in the first place
 
       newPanel.name = name;
+      newPanel.PerformLayout();
       newPanel.Enable();  // necessary to make sure our children are enabled when the panel is first loaded
 
       // Add it to our known panels so we can make visible / invisible as necessary
