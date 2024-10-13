@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3 (2024-10-12)
+
+- Fixed regression with invisible scroll bars introduced in 1.1.2
+- Slightly improved stablitiy of Mod Config menu when accessed from the main menu (still slightly buggy)
+
 ## 1.1.2 (2024-09-22)
 
 - Prevented Cultist from disappearing from Breach while Breach co-op character select is enabled
