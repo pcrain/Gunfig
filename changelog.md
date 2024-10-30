@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.4 (TBD)
+
+- Fixed issue with Mod Config menus being invisible if a vanilla option menu was opened before them
+
 ## 1.1.3 (2024-10-12)
 
 - Fixed regression with invisible scroll bars introduced in 1.1.2

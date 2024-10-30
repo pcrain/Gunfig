@@ -711,6 +711,8 @@ internal static class GunfigMenu
       _MenuStack.Push(panel);
       GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>(
         ).OptionsMenu.PreOptionsMenu.ToggleToPanel(panel, val: true, force: true); // force true so it works even if it's invisible
+      //NOTE: for whatever reason, if a vanilla menu is opened first, the panel is opened at 100x scale...why ._.
+      panel.transform.localScale = Vector3.one;
     }
 
     private static void SetOptionsPageTitle(string title)
