@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.4 (TBD)
+## 1.1.4 (2024-11-30)
 
 - Fixed issue with Mod Config menus being invisible if a vanilla option menu was opened before them
 
