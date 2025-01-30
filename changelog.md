@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.5 (2025-01-30)
+
+- Fixed issue with Blasphemy not working correctly with "Auto-fire Semi-Automatic Weapons" option
+
 ## 1.1.4 (2024-11-30)
 
 - Fixed issue with Mod Config menus being invisible if a vanilla option menu was opened before them

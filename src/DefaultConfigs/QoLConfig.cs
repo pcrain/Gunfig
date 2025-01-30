@@ -185,6 +185,25 @@ public static class QoLConfig
     return orig(); // return the original value
   }
 
+  // Allow Blasphemy to benefit from SemiAutomatic weapon autofire since it counts as an "Empty" gun normally
+  [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.HandleGunFiringInternal))]
+  private static class PlayerControllerHandleGunFiringInternalPatch
+  {
+      [HarmonyILManipulator]
+      private static void PlayerControllerHandleGunFiringInternalIL(ILContext il)
+      {
+          ILCursor cursor = new ILCursor(il);
+          if (!cursor.TryGotoNext(MoveType.After,
+              instr => instr.MatchCallvirt<Gun>("get_IsEmpty")))
+              return;
+          cursor.Emit(OpCodes.Ldarg_1); // Gun
+          cursor.Emit(OpCodes.Call, typeof(PlayerControllerHandleGunFiringInternalPatch).GetMethod(
+            nameof(AllowBlasphemyAutofire), BindingFlags.Static | BindingFlags.NonPublic));
+      }
+
+      private static bool AllowBlasphemyAutofire(bool orig, Gun gun) => orig && !gun.IsHeroSword;
+  }
+
   internal static string _ManualCoopPrefabOverride = null;
   private static PlayerController OnGenerateCoopPlayer(Func<HutongGames.PlayMaker.Actions.ChangeCoopMode, PlayerController> orig, HutongGames.PlayMaker.Actions.ChangeCoopMode coop)
   {
