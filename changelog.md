@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.6 (TBD)
+
+- Fixed callback system so that calling `Enabled()`, `Disabled()`, or `Value()` within a config's callback returns the option's up-to-date value
+
 ## 1.1.5 (2025-01-30)
 
 - Fixed issue with Blasphemy not working correctly with "Auto-fire Semi-Automatic Weapons" option

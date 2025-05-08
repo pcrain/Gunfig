@@ -38,9 +38,9 @@ internal class GunfigOption : MonoBehaviour
       {
         foreach (GunfigOption option in _PendingUpdatesOnConfirm)
         {
+          option._parent.Set(option._lookupKey, option._pendingValue);  // register change in the config handler even if the option's pending changes are deferred
           if (option._updateType == Gunfig.Update.OnConfirm)
             option.CommitPendingChanges();
-          option._parent.Set(option._lookupKey, option._pendingValue);  // register change in the config handler even if the option's pending changes are deferred
         }
         Gunfig.SaveActiveConfigsToDisk();  // save all committed changes
         _PendingUpdatesOnConfirm.Clear();
@@ -66,15 +66,31 @@ internal class GunfigOption : MonoBehaviour
     if (this._pendingValue == this._currentValue)
       return;  // we didn't change, so we shouldn't do anything
 
-    if (this._onApplyChanges != null)
-      this._onApplyChanges(this._lookupKey, this._pendingValue);
+    string previousValue = this._currentValue;
+    this._currentValue = this._pendingValue;
 
-    this._currentValue = this._pendingValue;  // set our current value to our pending value after applying changes in case we throw an exception and break the config
-
-    if (this._updateType == Gunfig.Update.Immediate) // register and save immediate changes to disk TODO: maybe be more conservative with this?
+    if (this._updateType == Gunfig.Update.Immediate) // register and save immediate changes to disk
     {
-      this._parent.Set(this._lookupKey, this._pendingValue);
+      this._parent.Set(this._lookupKey, this._currentValue);
       Gunfig.SaveActiveConfigsToDisk();
+    }
+
+    if (this._onApplyChanges != null)
+    {
+      try
+      {
+        this._onApplyChanges(this._lookupKey, this._currentValue);
+      }
+      catch (Exception e)
+      {
+        this._currentValue = previousValue; // reset to the old value if _onApplyChanges() fails to avoid bricking anything
+        if (this._updateType == Gunfig.Update.Immediate) // register and save immediate changes to disk
+        {
+          this._parent.Set(this._lookupKey, this._currentValue);
+          Gunfig.SaveActiveConfigsToDisk();
+        }
+        throw e; // rethrow the exception
+      }
     }
   }
 
