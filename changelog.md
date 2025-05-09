@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.6 (TBD)
+## 1.1.6 (2025-05-08)
 
 - Fixed callback system so that calling `Enabled()`, `Disabled()`, or `Value()` within a config's callback returns the option's up-to-date value
 
