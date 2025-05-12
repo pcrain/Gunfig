@@ -117,7 +117,14 @@ internal static class GunfigMenu
       orig(controller, targetPanel, doFocus);
       if (isOurPanel)
       {
-        targetPanel.controls.First().RecursiveFocus();  // fix bug where first item isn't highlighted
+        for (int i = 0; i < targetPanel.controls.Count; ++i)
+        {
+          dfControl c = targetPanel.controls[i];
+          if (!c.gameObject.GetComponent<BraveOptionsMenuItem>())
+            continue;
+          c.RecursiveFocus();  // fix bug where first item isn't highlighted
+          break;
+        }
         SetOptionsPageTitle(targetPanel.name);
       }
       else

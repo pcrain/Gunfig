@@ -4,6 +4,7 @@
 
 - Fixed small memory leak caused by Infinite Hegemony Credits option constantly overriding credits label
 - Fixed flickering and graphical glitches when opening mod menus longer than a single page from the main menu
+- Fixed not being able to navigate menus with arrow keys if the first item is a label
 
 ## 1.1.6 (2025-05-08)
 
