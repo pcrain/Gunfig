@@ -3,6 +3,7 @@
 ## 1.1.7 (TBD)
 
 - Fixed small memory leak caused by Infinite Hegemony Credits option constantly overriding credits label
+- Fixed flickering and graphical glitches when opening mod menus longer than a single page from the main menu
 
 ## 1.1.6 (2025-05-08)
 

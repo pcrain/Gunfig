@@ -713,6 +713,9 @@ internal static class GunfigMenu
         ).OptionsMenu.PreOptionsMenu.ToggleToPanel(panel, val: true, force: true); // force true so it works even if it's invisible
       //NOTE: for whatever reason, if a vanilla menu is opened first, the panel is opened at 100x scale...why ._.
       panel.transform.localScale = Vector3.one;
+
+      // System.Console.WriteLine($"opening menu {panel.name}");
+      // DumpRecursive(panel.gameObject);
     }
 
     private static void SetOptionsPageTitle(string title)
@@ -758,6 +761,12 @@ internal static class GunfigMenu
             cursor.Remove();
             cursor.Emit(OpCodes.Bge, loopBranch);
             return;
+        }
+
+        private static void Postfix(FullOptionsMenuController __instance)
+        {
+            if (Foyer.DoMainMenu)
+              __instance.ShwoopOpen(); //HACK: fixes weird scrolling issue when entering submenus from the title screen, but causes flickering
         }
     }
 }

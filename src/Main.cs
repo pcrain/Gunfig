@@ -103,6 +103,33 @@ public static class Dissect // reflection helper methods
             Console.WriteLine(" prop {0} = {1}", d.Name, d.GetValue(o));
     }
 
+    public static void DumpFieldsAndProperties(Component c)
+    {
+        Type type = c.GetType();
+        foreach (var f in type.GetFields())
+            Console.WriteLine(String.Format("field {0} = {1}", f.Name, f.GetValue(c)));
+        foreach(PropertyDescriptor d in TypeDescriptor.GetProperties(c))
+            Console.WriteLine(" prop {0} = {1}", d.Name, d.GetValue(c));
+    }
+
+    public static void DumpRecursive(GameObject g, int level = 0)
+    {
+      System.Console.WriteLine($"recursive dump of {g.name} at level {level}");
+      Dissect.DumpFieldsAndProperties<GameObject>(g);
+      Dissect.DumpFieldsAndProperties<Transform>(g.transform);
+      foreach (Component c in g.GetComponents<Component>())
+      {
+        Console.WriteLine($"for component {c.GetType()}");
+        Dissect.DumpFieldsAndProperties(c);
+      }
+      int children = g.transform.childCount;
+      for (int i = 0; i < children; ++i)
+      {
+        Console.WriteLine($"for child {i + 1}");
+        DumpRecursive(g.transform.GetChild(i).gameObject, level + 1);
+      }
+    }
+
     public static void CompareFieldsAndProperties<T>(T o1, T o2)
     {
         // Type type = o.GetType();
