@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7 (TBD)
+
+- Fixed small memory leak caused by Infinite Hegemony Credits option constantly overriding credits label
+
 ## 1.1.6 (2025-05-08)
 
 - Fixed callback system so that calling `Enabled()`, `Disabled()`, or `Value()` within a config's callback returns the option's up-to-date value

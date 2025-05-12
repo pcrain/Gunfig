@@ -550,13 +550,14 @@ public static class QoLConfig
   [HarmonyPatch(typeof(SimpleStatLabel), nameof(SimpleStatLabel.Update))]
   private class InfiniteCreditsOnHUDPatch
   {
-      static void Postfix(SimpleStatLabel __instance)
+      static bool Prefix(SimpleStatLabel __instance)
       {
         if (!__instance.m_label || !__instance.m_label.IsVisible || __instance.stat != TrackedStats.META_CURRENCY || _Gunfig.Disabled(INFINITE_META))
-          return;
+          return true; // call original method
         __instance.m_label.AutoHeight = true;
         __instance.m_label.ProcessMarkup = true;
         __instance.m_label.Text = "[sprite \"infinite-big\"]";
+        return false; // skip origina method
       }
   }
 
