@@ -1,10 +1,10 @@
 # Changelog
 
-## 1.1.7 (TBD)
+## 1.1.7 (2025-05-12)
 
 - Fixed small memory leak caused by Infinite Hegemony Credits option constantly overriding credits label
 - Fixed flickering and graphical glitches when opening mod menus longer than a single page from the main menu
-- Fixed not being able to navigate menus with arrow keys if the first item is a label
+- Fixed not being able to navigate menus with arrow keys if the first item in a menu is a label
 
 ## 1.1.6 (2025-05-08)
 
