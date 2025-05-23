@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8 (2025-05-23)
+
+- Fixed info boxes for menu items overlapping the scrollboxes if visiting the vanilla Video menu before opening the Mod Config menu for the first time
+
 ## 1.1.7 (2025-05-12)
 
 - Fixed small memory leak caused by Infinite Hegemony Credits option constantly overriding credits label

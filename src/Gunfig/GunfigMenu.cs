@@ -126,6 +126,7 @@ internal static class GunfigMenu
           break;
         }
         SetOptionsPageTitle(targetPanel.name);
+        // PrintControlRecursive(targetPanel, dissect: false);
       }
       else
         SetOptionsPageTitle("Options");
@@ -591,6 +592,10 @@ internal static class GunfigMenu
       dfSprite newArrowLeftSprite        = newArrowboxInnerPanel.AddControl<dfSprite>().CopyAttributes(hasInfo ? _CachedPrototypeInfoPanelLeftSprite : _CachedPrototypeLeftRightPanelLeftSprite);
       dfSprite newArrowRightSprite       = newArrowboxInnerPanel.AddControl<dfSprite>().CopyAttributes(hasInfo ? _CachedPrototypeInfoPanelRightSprite : _CachedPrototypeLeftRightPanelRightSprite);
       dfLabel  newArrowInfoLabel         = hasInfo ? newArrowboxWrapperPanel.AddControl<dfLabel>().CopyAttributes(_CachedPrototypeInfoInfoPanel) : null;
+
+      // NOTE: fixes a weird bug where the position offset if visiting the video menu first
+      if (newArrowInfoLabel != null)
+        newArrowInfoLabel.RelativePosition = newArrowInfoLabel.RelativePosition.WithY(87f); // vanilla offset
 
       newArrowSelectorLabel.Text = label;
       newArrowSelectorSelection.Text = options[0];
