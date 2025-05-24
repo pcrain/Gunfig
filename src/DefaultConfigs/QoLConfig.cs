@@ -24,6 +24,7 @@ public static class QoLConfig
   internal const string CHEATS_LABEL    = "Cheats / Debug Stuff";
   internal const string SPAWN_ITEMS     = "Spawn Items from Ammonomicon";
   internal const string FAST_POKEDEX    = "Ammonmicon Opens Instantly";
+  internal const string TARGET_POKEDEX  = "Ammonmicon Opens To Targeted Item";
   internal const string ALL_THE_ITEMS   = "Unlimited Active Items";
   internal const string INFINITE_META   = "Infinite Hegemony Credits";
 
@@ -78,6 +79,7 @@ public static class QoLConfig
     _Gunfig.AddToggle(key: HEALTH_BARS);
     _Gunfig.AddToggle(key: DAMAGE_NUMS);
     _Gunfig.AddToggle(key: FAST_POKEDEX);
+    _Gunfig.AddToggle(key: TARGET_POKEDEX);
 
     // Add a toggle that goes into effect immediately without awaiting confirmation from the player.
     _Gunfig.AddToggle(key: MENU_SOUNDS, updateType: Gunfig.Update.Immediate);
@@ -587,11 +589,8 @@ public static class QoLConfig
       }
   }
 
-
   /* TODO:
-      - fix scrolling not working until clicking somewhere on the page
-      - fix not scrolling to items the very first time the ammonomicon is opened
-      - fix null item info on first page the very first time the ammonomicon is opened
+      - fix scrolling not working until clicking somewhere on the page //NOTE: vanilla bug, keyboard takes control away from mouse
   */
   /// <summary>If the player is targeting an item, make opening the ammonomicon bring up the entry for that item.</summary>
   [HarmonyPatch]
@@ -629,16 +628,29 @@ public static class QoLConfig
       return pickup.PickupObjectId;
     }
 
-    [HarmonyPatch(typeof(AmmonomiconController), nameof(AmmonomiconController.OpenAmmonomicon))]
-    [HarmonyPrefix]
-    private static bool AmmonomiconControllerOpenAmmonomiconPrefix(AmmonomiconController __instance, bool isDeath, bool isVictory)
+    [HarmonyPatch(typeof(AmmonomiconController), nameof(AmmonomiconController.OpenInternal))]
+    [HarmonyILManipulator]
+    private static void AmmonomiconControllerOpenInternalPatchIL(ILContext il)
     {
-        if (__instance.m_isOpen || __instance.m_isOpening)
-          return true;
+        ILCursor cursor = new ILCursor(il);
+        if (!cursor.TryGotoNext(MoveType.After, instr => instr.MatchCallvirt<Material>("set_shader")))
+          return;
+
+        cursor.Emit(OpCodes.Ldarg_0); // AmmonomiconController instance
+        cursor.Emit(OpCodes.Ldarg_1); // isDeath
+        cursor.Emit(OpCodes.Ldarg_2); // isVictory
+        cursor.Emit(OpCodes.Ldarga, 3); // ref targetTrackable
+        cursor.CallPrivate(typeof(AmmonomiconControllerOpenAmmonomiconPatch), nameof(MaybeOpenToTargetedItem));
+    }
+
+    private static void MaybeOpenToTargetedItem(AmmonomiconController self, bool isDeath, bool isVictory, ref EncounterTrackable targetTrackable)
+    {
+        if (isDeath || isVictory || _Gunfig.Disabled(TARGET_POKEDEX))
+          return;
         if (GameManager.Instance.PrimaryPlayer is not PlayerController player)
-          return true;
+          return;
         if (player.m_lastInteractionTarget is not IPlayerInteractable targetInteractable)
-          return true;
+          return;
         int targetPickupId = -1;
         bool isGun = false;
 
@@ -659,55 +671,27 @@ public static class QoLConfig
         else
           targetPickupId = AttemptToGetPickupIdFromAlexandriaShopItem(targetInteractable, ref isGun);
         if (targetPickupId == -1)
-          return true;
+          return;
         if (PickupObjectDatabase.GetById(targetPickupId) is not PickupObject pickup)
-          return true;
-        if (pickup.gameObject.GetComponent<EncounterTrackable>() is not EncounterTrackable targetTrackable)
-          return true;
-        if (targetTrackable.journalData != null && targetTrackable.journalData.SuppressInAmmonomicon)
-          return true;
+          return;
+        if (pickup.gameObject.GetComponent<EncounterTrackable>() is not EncounterTrackable newTargetTrackable)
+          return;
+        if (newTargetTrackable.journalData != null && newTargetTrackable.journalData.SuppressInAmmonomicon)
+          return;
 
-        #if DEBUG
-        System.Console.WriteLine($"got trackable for {targetTrackable.name}");
-        #endif
-
-        __instance.m_isOpen = true;
-        __instance.m_isOpening = true;
-
-        while (dfGUIManager.GetModalControl() != null)
-          dfGUIManager.PopModal();
-
-        __instance.m_isPageTransitioning = true;
-        __instance.m_AmmonomiconInstance.GuiManager.enabled = true;
-        __instance.m_AmmonomiconInstance.GuiManager.RenderCamera.enabled = true;
-
+        targetTrackable = newTargetTrackable;
         _NextBookmark = isGun ? 1 : 2;
-        __instance.m_AmmonomiconInstance.CurrentlySelectedTabIndex = _NextBookmark;
+        self.m_AmmonomiconInstance.CurrentlySelectedTabIndex = _NextBookmark;
 
-        __instance.m_CurrentLeftPageManager = __instance.LoadPageUIAtPath(__instance.m_AmmonomiconInstance.bookmarks[_NextBookmark].TargetNewPageLeft,
+        self.m_CurrentLeftPageManager.Disable();
+        self.m_CurrentRightPageManager.Disable();
+
+        self.m_CurrentLeftPageManager = self.LoadPageUIAtPath(self.m_AmmonomiconInstance.bookmarks[_NextBookmark].TargetNewPageLeft,
           isGun ? AmmonomiconPageRenderer.PageType.GUNS_LEFT : AmmonomiconPageRenderer.PageType.ITEMS_LEFT, false, false);
-        __instance.m_CurrentRightPageManager = __instance.LoadPageUIAtPath(__instance.m_AmmonomiconInstance.bookmarks[_NextBookmark].TargetNewPageRight,
+        self.m_CurrentRightPageManager = self.LoadPageUIAtPath(self.m_AmmonomiconInstance.bookmarks[_NextBookmark].TargetNewPageRight,
           isGun ? AmmonomiconPageRenderer.PageType.GUNS_RIGHT : AmmonomiconPageRenderer.PageType.ITEMS_RIGHT, false, false);
-        __instance.m_CurrentLeftPageManager.ForceUpdateLanguageFonts();
-        __instance.m_CurrentRightPageManager.ForceUpdateLanguageFonts();
-
-        // List<AmmonomiconPokedexEntry> allEntries = __instance.m_CurrentLeftPageManager.m_pokedexEntries;
-        // System.Console.WriteLine($"scanning {allEntries.Count} entries");
-        // foreach (AmmonomiconPokedexEntry entry in allEntries)
-        // {
-        //   if (entry == null || entry.linkedEncounterTrackable == null || entry.linkedEncounterTrackable.pickupObjectId != targetPickupId)
-        //     continue;
-        //   System.Console.WriteLine($"  found target trackable");
-        //   entry.ForceFocus();
-        //   __instance.m_CurrentRightPageManager.SetRightDataPageTexts(entry.ChildSprite, entry.linkedEncounterTrackable);
-        //   break;
-        // }
-
-        __instance.m_CurrentRightPageManager.targetRenderer.sharedMaterial.shader = ShaderCache.Acquire("Custom/AmmonomiconPageShader");
-        __instance.StartCoroutine(__instance.HandleOpenAmmonomicon(false, GameManager.Options.HasEverSeenAmmonomicon, targetTrackable));
-        GameManager.Options.HasEverSeenAmmonomicon = true;
-
-        return false;    // skip the original method
+        self.m_CurrentLeftPageManager.ForceUpdateLanguageFonts();
+        self.m_CurrentRightPageManager.ForceUpdateLanguageFonts();
     }
 
     [HarmonyPatch(typeof(AmmonomiconInstanceManager), nameof(AmmonomiconInstanceManager.Open))]

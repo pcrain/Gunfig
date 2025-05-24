@@ -31,11 +31,11 @@ namespace Gunfiguration;
 
 public static class C // constants
 {
-    public static readonly bool DEBUG_BUILD = true; // set to false for release builds (must be readonly instead of const to avoid build warnings)
+    public static readonly bool DEBUG_BUILD = false; // set to false for release builds (must be readonly instead of const to avoid build warnings)
 
     public const string MOD_NAME     = "Gunfig";
     public const string MOD_INT_NAME = "Gunfiguration";
-    public const string MOD_VERSION  = "1.1.7";
+    public const string MOD_VERSION  = "1.1.8";
     public const string MOD_GUID     = "pretzel.etg.gunfig";
     public const string MOD_PREFIX   = "gf";
 
@@ -214,5 +214,11 @@ public static class Dissect // reflection helper methods
     {
         foreach (Instruction c in cursor.Instrs)
             DumpILInstruction(c);
+    }
+
+    /// <summary>Convenience method for calling an internal / private static function with an ILCursor</summary>
+    public static void CallPrivate(this ILCursor cursor, Type t, string name)
+    {
+        cursor.Emit(OpCodes.Call, t.GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic));
     }
 }
