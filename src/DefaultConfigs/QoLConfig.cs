@@ -586,6 +586,142 @@ public static class QoLConfig
           return _Gunfig.Disabled(COOP_FOYER_SEL); // call the original method iff we aren't allowing coop character selecting
       }
   }
+
+
+  /* TODO:
+      - fix scrolling not working until clicking somewhere on the page
+      - fix not scrolling to items the very first time the ammonomicon is opened
+      - fix null item info on first page the very first time the ammonomicon is opened
+  */
+  /// <summary>If the player is targeting an item, make opening the ammonomicon bring up the entry for that item.</summary>
+  [HarmonyPatch]
+  private class AmmonomiconControllerOpenAmmonomiconPatch
+  {
+    private static int _NextBookmark                      = 0;
+    private static bool _DidAlexandriaScan                = false;
+    private static Type _AlexandriaShopItemType           = null;
+    private static FieldInfo _AlexandriaShopItemItemField = null;
+
+    private static int AttemptToGetPickupIdFromAlexandriaShopItem(IPlayerInteractable targetInteractable, ref bool isGun)
+    {
+      if (!_DidAlexandriaScan)
+      {
+        _DidAlexandriaScan = true;
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+          if (!assembly.FullName.Contains("Alexandria"))
+            continue;
+          _AlexandriaShopItemType = assembly.GetType("Alexandria.NPCAPI.CustomShopItemController");
+          if (_AlexandriaShopItemType == null)
+            return -1;
+          _AlexandriaShopItemItemField = _AlexandriaShopItemType.GetField("item", BindingFlags.Public | BindingFlags.Instance);
+        }
+      }
+      if (_AlexandriaShopItemItemField == null)
+        return -1; // Alexandria not found, so this can never be an Alexandria shop item
+      if (!_AlexandriaShopItemType.IsInstanceOfType(targetInteractable))
+        return -1; // Not a shop item
+      object customItemPickup = _AlexandriaShopItemItemField.GetValue(targetInteractable);
+      if (customItemPickup == null)
+        return -1; // No associated pickup
+      PickupObject pickup = (PickupObject)customItemPickup;
+      isGun = pickup is Gun;
+      return pickup.PickupObjectId;
+    }
+
+    [HarmonyPatch(typeof(AmmonomiconController), nameof(AmmonomiconController.OpenAmmonomicon))]
+    [HarmonyPrefix]
+    private static bool AmmonomiconControllerOpenAmmonomiconPrefix(AmmonomiconController __instance, bool isDeath, bool isVictory)
+    {
+        if (__instance.m_isOpen || __instance.m_isOpening)
+          return true;
+        if (GameManager.Instance.PrimaryPlayer is not PlayerController player)
+          return true;
+        if (player.m_lastInteractionTarget is not IPlayerInteractable targetInteractable)
+          return true;
+        int targetPickupId = -1;
+        bool isGun = false;
+
+        if (targetInteractable is Gun gun)
+        {
+          isGun = true;
+          targetPickupId = gun.PickupObjectId;
+        }
+        else if (targetInteractable is PlayerItem active)
+          targetPickupId = active.PickupObjectId;
+        else if (targetInteractable is PassiveItem passive)
+          targetPickupId = passive.PickupObjectId;
+        else if (targetInteractable is ShopItemController shopItem && shopItem.item is PickupObject shopPickup)
+        {
+          isGun = shopPickup is Gun;
+          targetPickupId = shopPickup.PickupObjectId;
+        }
+        else
+          targetPickupId = AttemptToGetPickupIdFromAlexandriaShopItem(targetInteractable, ref isGun);
+        if (targetPickupId == -1)
+          return true;
+        if (PickupObjectDatabase.GetById(targetPickupId) is not PickupObject pickup)
+          return true;
+        if (pickup.gameObject.GetComponent<EncounterTrackable>() is not EncounterTrackable targetTrackable)
+          return true;
+        if (targetTrackable.journalData != null && targetTrackable.journalData.SuppressInAmmonomicon)
+          return true;
+
+        #if DEBUG
+        System.Console.WriteLine($"got trackable for {targetTrackable.name}");
+        #endif
+
+        __instance.m_isOpen = true;
+        __instance.m_isOpening = true;
+
+        while (dfGUIManager.GetModalControl() != null)
+          dfGUIManager.PopModal();
+
+        __instance.m_isPageTransitioning = true;
+        __instance.m_AmmonomiconInstance.GuiManager.enabled = true;
+        __instance.m_AmmonomiconInstance.GuiManager.RenderCamera.enabled = true;
+
+        _NextBookmark = isGun ? 1 : 2;
+        __instance.m_AmmonomiconInstance.CurrentlySelectedTabIndex = _NextBookmark;
+
+        __instance.m_CurrentLeftPageManager = __instance.LoadPageUIAtPath(__instance.m_AmmonomiconInstance.bookmarks[_NextBookmark].TargetNewPageLeft,
+          isGun ? AmmonomiconPageRenderer.PageType.GUNS_LEFT : AmmonomiconPageRenderer.PageType.ITEMS_LEFT, false, false);
+        __instance.m_CurrentRightPageManager = __instance.LoadPageUIAtPath(__instance.m_AmmonomiconInstance.bookmarks[_NextBookmark].TargetNewPageRight,
+          isGun ? AmmonomiconPageRenderer.PageType.GUNS_RIGHT : AmmonomiconPageRenderer.PageType.ITEMS_RIGHT, false, false);
+        __instance.m_CurrentLeftPageManager.ForceUpdateLanguageFonts();
+        __instance.m_CurrentRightPageManager.ForceUpdateLanguageFonts();
+
+        // List<AmmonomiconPokedexEntry> allEntries = __instance.m_CurrentLeftPageManager.m_pokedexEntries;
+        // System.Console.WriteLine($"scanning {allEntries.Count} entries");
+        // foreach (AmmonomiconPokedexEntry entry in allEntries)
+        // {
+        //   if (entry == null || entry.linkedEncounterTrackable == null || entry.linkedEncounterTrackable.pickupObjectId != targetPickupId)
+        //     continue;
+        //   System.Console.WriteLine($"  found target trackable");
+        //   entry.ForceFocus();
+        //   __instance.m_CurrentRightPageManager.SetRightDataPageTexts(entry.ChildSprite, entry.linkedEncounterTrackable);
+        //   break;
+        // }
+
+        __instance.m_CurrentRightPageManager.targetRenderer.sharedMaterial.shader = ShaderCache.Acquire("Custom/AmmonomiconPageShader");
+        __instance.StartCoroutine(__instance.HandleOpenAmmonomicon(false, GameManager.Options.HasEverSeenAmmonomicon, targetTrackable));
+        GameManager.Options.HasEverSeenAmmonomicon = true;
+
+        return false;    // skip the original method
+    }
+
+    [HarmonyPatch(typeof(AmmonomiconInstanceManager), nameof(AmmonomiconInstanceManager.Open))]
+    [HarmonyPrefix]
+    private static bool AmmonomiconInstanceManagerOpenPrefix(AmmonomiconInstanceManager __instance)
+    {
+      if (_NextBookmark == 0)
+        return true;
+      __instance.m_currentlySelectedBookmark = _NextBookmark;
+      _NextBookmark = 0;
+      __instance.StartCoroutine(__instance.HandleOpenAmmonomicon());
+      return false;
+    }
+  }
 }
 
 // Scrapped for now:
