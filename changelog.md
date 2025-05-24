@@ -3,6 +3,7 @@
 ## 1.1.8 (2025-05-23)
 
 - Fixed info boxes for menu items overlapping the scrollboxes if visiting the vanilla Video menu before opening the Mod Config menu for the first time
+- Fixed being able to trigger Quickstart while actively in menus on the main menu
 
 ## 1.1.7 (2025-05-12)
 

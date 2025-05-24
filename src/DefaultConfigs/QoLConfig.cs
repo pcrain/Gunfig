@@ -211,9 +211,15 @@ public static class QoLConfig
     return orig(coop);
   }
 
+  private static FullOptionsMenuController _OptionsMenu = null;
   private static void OnMainMenuUpdate(Action<MainMenuFoyerController> orig, MainMenuFoyerController menu)
   {
     orig(menu);
+
+    if (!_OptionsMenu)
+      _OptionsMenu = GameUIRoot.Instance.PauseMenuPanel.GetComponent<PauseMenuController>().OptionsMenu;
+    if (_OptionsMenu.IsVisible || (_OptionsMenu.PreOptionsMenu && _OptionsMenu.PreOptionsMenu.IsVisible))
+      return; // disallow extended quickstarting if the game is paused
 
     if (!Foyer.DoIntroSequence && !Foyer.DoMainMenu)
       return; // disallow extended quickstarting if we're actively in the Breach
