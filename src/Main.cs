@@ -35,7 +35,7 @@ public static class C // constants
 
     public const string MOD_NAME     = "Gunfig";
     public const string MOD_INT_NAME = "Gunfiguration";
-    public const string MOD_VERSION  = "1.1.8";
+    public const string MOD_VERSION  = "1.1.9";
     public const string MOD_GUID     = "pretzel.etg.gunfig";
     public const string MOD_PREFIX   = "gf";
 

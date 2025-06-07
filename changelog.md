@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.9 (2025-06-06)
+
+- Added "Open Debug Log on Exit" config option for opening the output log after reaching a certain number of errors
+- Fixed typos in a few config options
+- Made "Ammonomicon Opens To Targeted Item" enabled by default
+
 ## 1.1.8 (2025-05-23)
 
 - Fixed info boxes for menu items overlapping the scrollboxes if visiting the vanilla Video menu before opening the Mod Config menu for the first time

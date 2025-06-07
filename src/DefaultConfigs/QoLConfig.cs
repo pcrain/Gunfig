@@ -23,10 +23,11 @@ public static class QoLConfig
   internal const string DAMAGE_NUMS     = "Show Damage Numbers";
   internal const string CHEATS_LABEL    = "Cheats / Debug Stuff";
   internal const string SPAWN_ITEMS     = "Spawn Items from Ammonomicon";
-  internal const string FAST_POKEDEX    = "Ammonmicon Opens Instantly";
-  internal const string TARGET_POKEDEX  = "Ammonmicon Opens To Targeted Item";
+  internal const string FAST_POKEDEX    = "Ammonomicon Opens Instantly";
+  internal const string TARGET_POKEDEX  = "Ammonomicon Opens To Targeted Item";
   internal const string ALL_THE_ITEMS   = "Unlimited Active Items";
   internal const string INFINITE_META   = "Infinite Hegemony Credits";
+  internal const string OPEN_DEBUG_LOG  = "Open Debug Log on Exit";
 
   // Note the formatting applied to individual labels. Formatting can be applied to all menus strings, but NOT to option keys.
   private static readonly List<string> _QUICKSTART_OPTIONS = new() {
@@ -39,6 +40,22 @@ public static class QoLConfig
     "Vanilla quickstart behavior".Green(),
     "Allows quickstarting on the main menu\nafter the title sequence".Green(),
     "Quick start will automatically start co-op\nif a second controller is plugged in".Green(),
+  };
+
+  private static readonly List<string> _OPEN_LOG_OPTIONS = new() {
+    "Never",
+    "After 1 error".Yellow(),
+    "After 10 errors".Yellow(),
+    "After 100 errors".Yellow(),
+    "After 1000 errors".Yellow(),
+  };
+
+  private static readonly List<string> _OPEN_LOG_DESCRIPTIONS = new() {
+    "The debug log will never open automatically.".Green(),
+    "Opens the debug log when closing Gungeon\nif at least 1 error has occurred.".Green(),
+    "Opens the debug log when closing Gungeon\nif at least 10 errors have occurred.".Green(),
+    "Opens the debug log when closing Gungeon\nif at least 100 errors have occurred.".Green(),
+    "Opens the debug log when closing Gungeon\nif at least 1000 errors have occurred.".Green(),
   };
 
   private static readonly Dictionary<string, string> _PLAYER_MAP = new() {
@@ -79,7 +96,9 @@ public static class QoLConfig
     _Gunfig.AddToggle(key: HEALTH_BARS);
     _Gunfig.AddToggle(key: DAMAGE_NUMS);
     _Gunfig.AddToggle(key: FAST_POKEDEX);
-    _Gunfig.AddToggle(key: TARGET_POKEDEX);
+
+    // Add a toggle that's enabled by default
+    _Gunfig.AddToggle(key: TARGET_POKEDEX, enabled: true);
 
     // Add a toggle that goes into effect immediately without awaiting confirmation from the player.
     _Gunfig.AddToggle(key: MENU_SOUNDS, updateType: Gunfig.Update.Immediate);
@@ -91,6 +110,7 @@ public static class QoLConfig
     cheats.AddToggle(key: SPAWN_ITEMS, label: SPAWN_ITEMS.Magenta());
     cheats.AddToggle(key: ALL_THE_ITEMS, label: ALL_THE_ITEMS.Magenta());
     cheats.AddToggle(key: INFINITE_META, label: INFINITE_META.Magenta());
+    cheats.AddScrollBox(key: OPEN_DEBUG_LOG, options: _OPEN_LOG_OPTIONS, info: _OPEN_LOG_DESCRIPTIONS);
 
     // Add a button with a custom callback when processed. Buttons always trigger their callbacks immediately when pressed.
     // Note that we have to explicitly specify a label to color the button text Red, as we cannot add colors to the key.
@@ -107,6 +127,53 @@ public static class QoLConfig
   private static void LateInit()
   {
     GunfigDebug.Log($"doing late init for QoL config");
+    Application.logMessageReceived += CountErrors;
+    _QuitListener = GameManager.Instance.gameObject.AddComponent<GunfigApplicationQuitListener>();
+  }
+
+  private class GunfigApplicationQuitListener : MonoBehaviour
+  {
+    private void OnApplicationQuit() => MaybeOpenDebugLog();
+  }
+
+  private static int _ErrorCount = 0;
+  private static GunfigApplicationQuitListener _QuitListener = null;
+  private static void CountErrors(string text, string stackTrace, LogType type)
+  {
+    if (type == LogType.Exception)
+      ++_ErrorCount;
+  }
+
+  private static void MaybeOpenDebugLog()
+  {
+    UnityEngine.Object.DestroyImmediate(_QuitListener);
+    string openDebugLogOption = _Gunfig.Value(OPEN_DEBUG_LOG);
+    if (openDebugLogOption == "Never")
+      return;
+
+    int threshold = Int32.Parse(openDebugLogOption.Split(' ')[1]);
+  #if DEBUG
+    System.Console.WriteLine($"attempting to open debug log at {threshold} errors, have {_ErrorCount}");
+  #endif
+    if (_ErrorCount < threshold)
+      return;
+
+    _ErrorCount = 0;
+    string logFilePath = Path.Combine(BepInEx.Paths.BepInExRootPath, "LogOutput.log");
+
+    System.Diagnostics.ProcessStartInfo pi = new();
+    pi.UseShellExecute = true;
+    if (Application.platform == RuntimePlatform.WindowsPlayer)
+    {
+      pi.FileName = "explorer.exe";
+      pi.Arguments = logFilePath;
+    }
+    else
+    {
+      pi.FileName = logFilePath;
+    }
+
+    System.Diagnostics.Process.Start(pi);
   }
 
   private static void InitQoLHooks()
