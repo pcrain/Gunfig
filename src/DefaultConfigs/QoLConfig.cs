@@ -28,6 +28,7 @@ public static class QoLConfig
   internal const string ALL_THE_ITEMS   = "Unlimited Active Items";
   internal const string INFINITE_META   = "Infinite Hegemony Credits";
   internal const string OPEN_DEBUG_LOG  = "Open Debug Log on Exit";
+  internal const string PARADOX_ITEM    = "Paradox Starting Item";
 
   // Note the formatting applied to individual labels. Formatting can be applied to all menus strings, but NOT to option keys.
   private static readonly List<string> _QUICKSTART_OPTIONS = new() {
@@ -40,6 +41,20 @@ public static class QoLConfig
     "Vanilla quickstart behavior".Green(),
     "Allows quickstarting on the main menu\nafter the title sequence".Green(),
     "Quick start will automatically start co-op\nif a second controller is plugged in".Green(),
+  };
+
+  private static readonly List<string> _PARADOX_ITEM_OPTIONS = new() {
+    "Passive Only",
+    "Active Only".Yellow(),
+    "Passive + Active".Yellow(),
+    "Random".Yellow(),
+  };
+
+  private static readonly List<string> _PARADOX_ITEM_DESCRIPTIONS = new() {
+    "Paradox starts with a random passive and no active.\nVanilla behavior".Green(),
+    "Paradox starts with a random active and no passive.".Green(),
+    "Paradox starts with both a random passive\nand a random active.".Green(),
+    "Paradox starts with either a random passive\nor a random active.".Green(),
   };
 
   private static readonly List<string> _OPEN_LOG_OPTIONS = new() {
@@ -110,6 +125,8 @@ public static class QoLConfig
     cheats.AddToggle(key: SPAWN_ITEMS, label: SPAWN_ITEMS.Magenta());
     cheats.AddToggle(key: ALL_THE_ITEMS, label: ALL_THE_ITEMS.Magenta());
     cheats.AddToggle(key: INFINITE_META, label: INFINITE_META.Magenta());
+    cheats.AddScrollBox(key: PARADOX_ITEM, label: PARADOX_ITEM.Magenta(),
+      options: _PARADOX_ITEM_OPTIONS, info: _PARADOX_ITEM_DESCRIPTIONS);
     cheats.AddScrollBox(key: OPEN_DEBUG_LOG, options: _OPEN_LOG_OPTIONS, info: _OPEN_LOG_DESCRIPTIONS);
 
     // Add a button with a custom callback when processed. Buttons always trigger their callbacks immediately when pressed.
@@ -152,9 +169,8 @@ public static class QoLConfig
       return;
 
     int threshold = Int32.Parse(openDebugLogOption.Split(' ')[1]);
-    if (C.DEBUG_BUILD)
-      System.Console.WriteLine($"attempting to open debug log at {threshold} errors, have {_ErrorCount}");
-    else if (_ErrorCount < threshold)
+    GunfigDebug.Log($"attempting to open debug log at {threshold} errors, have {_ErrorCount}");
+    if (_ErrorCount < threshold && !C.DEBUG_BUILD)
       return;
 
     _ErrorCount = 0;
@@ -758,6 +774,60 @@ public static class QoLConfig
       __instance.StartCoroutine(__instance.HandleOpenAmmonomicon());
       return false;
     }
+  }
+
+  /// <summary>Allow the Paradox to start with an active item.</summary>
+  [HarmonyPatch]
+  private class RandomizeParadoxEquipmentBetterPatch
+  {
+      [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.SetUpRandomStartingEquipment))]
+      [HarmonyPostfix]
+      private static void PlayerControllerSetUpRandomStartingEquipmentPatch(PlayerController __instance)
+      {
+        string paradoxOption = _Gunfig.Value(PARADOX_ITEM);
+        if (paradoxOption == "Passive Only")
+          return; // vanilla behavior if we only use passive items
+
+        System.Random random = new System.Random(__instance.m_randomStartingEquipmentSeed);
+        if (random.NextDouble() < 0.5f && paradoxOption == "Random")
+          return; // 50-50 chance to just get a passive item, which is vanila behavior
+
+        PickupObject.ItemQuality quality = __instance.GetQualityFromChances(random,
+          __instance.randomStartingEquipmentSettings.D_CHANCE,
+          __instance.randomStartingEquipmentSettings.C_CHANCE,
+          __instance.randomStartingEquipmentSettings.B_CHANCE,
+          __instance.randomStartingEquipmentSettings.A_CHANCE,
+          __instance.randomStartingEquipmentSettings.S_CHANCE);
+
+        PlayerItem randomActiveOfQualities = GetRandomActiveOfQualities(random, quality);
+        if (randomActiveOfQualities)
+        {
+          __instance.startingActiveItemIds.Add(randomActiveOfQualities.PickupObjectId);
+          if (paradoxOption == "Random") // if random makes it here, that means we shouldn't have a passive
+            __instance.startingPassiveItemIds.Clear();
+        }
+        if (paradoxOption == "Active Only") // if active only makes it here, that means we shouldn't have a passive
+          __instance.startingPassiveItemIds.Clear();
+      }
+
+      private static PlayerItem GetRandomActiveOfQualities(System.Random usedRandom, params PickupObject.ItemQuality[] qualities)
+      {
+        PickupObjectDatabase Instance = PickupObjectDatabase.Instance;
+        List<PlayerItem> list = new List<PlayerItem>();
+        for (int i = 0; i < Instance.Objects.Count; i++)
+        {
+          if (Instance.Objects[i] != null && Instance.Objects[i] is PlayerItem && Instance.Objects[i].quality != PickupObject.ItemQuality.EXCLUDED && Instance.Objects[i].quality != PickupObject.ItemQuality.SPECIAL && !(Instance.Objects[i] is ContentTeaserItem) && Array.IndexOf(qualities, Instance.Objects[i].quality) != -1)
+          {
+            EncounterTrackable component = Instance.Objects[i].GetComponent<EncounterTrackable>();
+            if (component && component.PrerequisitesMet())
+              list.Add(Instance.Objects[i] as PlayerItem);
+          }
+        }
+        int num = usedRandom.Next(list.Count);
+        if (num < 0 || num >= list.Count)
+          return null;
+        return list[num];
+      }
   }
 }
 
