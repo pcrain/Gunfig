@@ -152,28 +152,14 @@ public static class QoLConfig
       return;
 
     int threshold = Int32.Parse(openDebugLogOption.Split(' ')[1]);
-  #if DEBUG
-    System.Console.WriteLine($"attempting to open debug log at {threshold} errors, have {_ErrorCount}");
-  #endif
-    if (_ErrorCount < threshold)
+    if (C.DEBUG_BUILD)
+      System.Console.WriteLine($"attempting to open debug log at {threshold} errors, have {_ErrorCount}");
+    else if (_ErrorCount < threshold)
       return;
 
     _ErrorCount = 0;
     string logFilePath = Path.Combine(BepInEx.Paths.BepInExRootPath, "LogOutput.log");
-
-    System.Diagnostics.ProcessStartInfo pi = new();
-    pi.UseShellExecute = true;
-    if (Application.platform == RuntimePlatform.WindowsPlayer)
-    {
-      pi.FileName = "explorer.exe";
-      pi.Arguments = logFilePath;
-    }
-    else
-    {
-      pi.FileName = logFilePath;
-    }
-
-    System.Diagnostics.Process.Start(pi);
+    Application.OpenURL(logFilePath);
   }
 
   private static void InitQoLHooks()
