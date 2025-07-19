@@ -15,10 +15,13 @@ If you're using a mod manager, any mod that requires Gunfig should automatically
   + static camera while aiming
   + show enemy health bars
   + show enemy damage numbers
-  + open Ammonomicon instantly
   + better menu sounds (e.g., when toggling options or changing sliders)
+  + open Ammonomicon instantly
+  + open Ammonomicon directly to the targeted ground / shop item
   
 The default Gunfig also includes several debug / cheat options, including:
   + spawn in items and guns from the Ammonomicon
   + unlimited active item slots
   + infinite Hegemony Credits
+  + randomize Paradox's starting active item
+  + automatically open debug log upon exiting the game (modders will love you)

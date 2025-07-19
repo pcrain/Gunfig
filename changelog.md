@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.10 (2025-07-19)
+
+- Added options for randomizing Paradox's starting items a little more
+- Switched to safer method of opening the debug log when closing Gungeon
+
 ## 1.1.9 (2025-06-06)
 
 - Added "Open Debug Log on Exit" config option for opening the output log after reaching a certain number of errors
