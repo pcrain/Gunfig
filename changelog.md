@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.11 (2026-04-12)
+
+- Fixed an issue with player indices getting desynced and causing several issues in co-op mode when player 2 changes their character after player 1 changes theirs
+
 ## 1.1.10 (2025-07-19)
 
 - Added options for randomizing Paradox's starting items a little more

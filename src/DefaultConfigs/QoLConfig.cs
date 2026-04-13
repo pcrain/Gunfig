@@ -535,6 +535,26 @@ public static class QoLConfig
       }
   }
 
+  /// <summary>Fixes an issue with second player detection being hardcoded to look for the Cultist</summary>
+  [HarmonyPatch(typeof(GameManager), nameof(GameManager.SecondaryPlayer), MethodType.Getter)]
+  private static class SecondaryPlayerCalculationFixPatch
+  {
+    [HarmonyPostfix]
+    private static PlayerController Postfix(PlayerController orig, GameManager __instance)
+    {
+      if (__instance.CurrentGameType == GameManager.GameType.SINGLE_PLAYER)
+        return orig;
+      if (_Gunfig.Disabled(COOP_FOYER_SEL))
+        return orig;
+      if (__instance.m_secondaryPlayer != null && __instance.m_secondaryPlayer.PlayerIDX == 1)
+        return __instance.m_secondaryPlayer;
+      foreach (PlayerController player in __instance.m_players)
+        if (player && player.PlayerIDX == 1)
+          __instance.m_secondaryPlayer = player;
+      return __instance.m_secondaryPlayer;
+    }
+  }
+
   [HarmonyPatch(typeof(AmmonomiconController), nameof(AmmonomiconController.HandleOpenAmmonomicon), MethodType.Enumerator)]
   private class FastAmmonomiconPatch
   {
