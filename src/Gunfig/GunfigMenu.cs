@@ -12,6 +12,9 @@ internal static class GunfigMenu
     private static dfScrollPanel _GunfigMainPanel  = null;
     private static dfScrollPanel _RefPanel         = null;
 
+    private static readonly MethodInfo _handleValueChangedMethod =
+      AccessTools.Method(typeof(BraveOptionsMenuItem), "HandleValueChanged");
+
     internal class CustomCheckboxHandler : MonoBehaviour
       { public PropertyChangedEventHandler<bool> onChanged; }
 
@@ -63,6 +66,17 @@ internal static class GunfigMenu
       new Hook(
           typeof(BraveOptionsMenuItem).GetMethod("HandleLeftRightArrowValueChanged", BindingFlags.Instance | BindingFlags.NonPublic),
           typeof(GunfigMenu).GetMethod("HandleLeftRightArrowValueChanged", BindingFlags.Static | BindingFlags.NonPublic)
+          );
+
+      // Skip display-only arrowbox values when navigating left/right
+      new Hook(
+          typeof(BraveOptionsMenuItem).GetMethod("IncrementArrow", BindingFlags.Instance | BindingFlags.NonPublic),
+          typeof(GunfigMenu).GetMethod("IncrementArrow", BindingFlags.Static | BindingFlags.NonPublic)
+          );
+
+      new Hook(
+          typeof(BraveOptionsMenuItem).GetMethod("DecrementArrow", BindingFlags.Instance | BindingFlags.NonPublic),
+          typeof(GunfigMenu).GetMethod("DecrementArrow", BindingFlags.Static | BindingFlags.NonPublic)
           );
 
       // Custom button events
@@ -161,6 +175,115 @@ internal static class GunfigMenu
       orig(item);
       if (item.GetComponent<CustomLeftRightArrowHandler>() is CustomLeftRightArrowHandler handler)
         handler.onChanged(item.m_self, item.labelOptions[item.m_selectedIndex]);
+    }
+
+    private static void IncrementArrow(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs mouseEvent)
+    {
+      GunfigOption option = item.GetComponent<GunfigOption>();
+
+      if (option == null || item.labelOptions == null || item.labelOptions.Length == 0)
+      {
+        orig(item, control, mouseEvent);
+        return;
+      }
+
+      int currentIndex = item.m_selectedIndex;
+      int nextIndex = FindNextSelectableIndex(
+        item,
+        option,
+        currentIndex,
+        direction: 1);
+
+      if (nextIndex == currentIndex)
+      {
+        orig(item, control, mouseEvent);
+        return;
+      }
+
+      if (nextIndex == (currentIndex + 1) % item.labelOptions.Length)
+      {
+        // The normal next value is selectable, so let the game handle it.
+        orig(item, control, mouseEvent);
+        return;
+      }
+
+      // Skip values that are valid but not selectable through normal navigation.
+      AkSoundEngine.PostEvent(
+        "Play_UI_menu_select_01",
+        item.gameObject);
+
+      item.m_selectedIndex = nextIndex;
+
+      InvokeHandleValueChanged(item);
+    }
+
+    private static void DecrementArrow(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs mouseEvent)
+    {
+      GunfigOption option = item.GetComponent<GunfigOption>();
+
+      if (option == null || item.labelOptions == null || item.labelOptions.Length == 0)
+      {
+        orig(item, control, mouseEvent);
+        return;
+      }
+
+      int currentIndex = item.m_selectedIndex;
+      int nextIndex = FindNextSelectableIndex(
+        item,
+        option,
+        currentIndex,
+        direction: -1);
+
+      if (nextIndex == currentIndex)
+      {
+        orig(item, control, mouseEvent);
+        return;
+      }
+
+      int normalNextIndex =
+        (currentIndex - 1 + item.labelOptions.Length) %
+        item.labelOptions.Length;
+
+      if (nextIndex == normalNextIndex)
+      {
+        // The normal previous value is selectable, so let the game handle it.
+        orig(item, control, mouseEvent);
+        return;
+      }
+
+      // Skip values that are valid but not selectable through normal navigation.
+      AkSoundEngine.PostEvent(
+        "Play_UI_menu_select_01",
+        item.gameObject);
+
+      item.m_selectedIndex = nextIndex;
+
+      InvokeHandleValueChanged(item);
+    }
+
+    // Find the next selectable value, wrapping around the available options. Values that are valid but not selectable are skipped.
+    private static int FindNextSelectableIndex(BraveOptionsMenuItem item, GunfigOption option, int currentIndex, int direction)
+    {
+      int count = item.labelOptions.Length;
+
+      for (int i = 1; i <= count; ++i)
+      {
+        int index = (currentIndex + direction * i) % count;
+
+        if (index < 0)
+          index += count;
+
+        if (option.IsValueSelectable(item.labelOptions[index]))
+          return index;
+      }
+
+      return currentIndex;
+    }
+
+    // Notify the normal value-change pipeline after manually changing the selected index.
+    private static void InvokeHandleValueChanged(BraveOptionsMenuItem item)
+    {
+      _handleValueChangedMethod.Invoke(item, null);
     }
 
     private static void DoSelectedAction(Action<BraveOptionsMenuItem> orig, BraveOptionsMenuItem item)
@@ -527,7 +650,6 @@ internal static class GunfigMenu
         newPanel.AutoReset            = refPanel.AutoReset;
         newPanel.AutoScrollPadding    = refPanel.AutoScrollPadding;
         newPanel.AutoFitVirtualTiles  = refPanel.AutoFitVirtualTiles;
-        newPanel.AutoFitVirtualTiles  = refPanel.AutoFitVirtualTiles;
 
       // Set up a few additional variables to suit our needs
       newPanel.ClipChildren         = true;
@@ -581,7 +703,7 @@ internal static class GunfigMenu
     }
 
     // based on VisualPresetArrowSelectorPanel (without info) and ResolutionArrowSelectorPanelWithInfoBox (with info)
-    internal static dfPanel AddArrowBox(this dfScrollPanel panel, string label, List<string> options, List<string> info = null, PropertyChangedEventHandler<string> onchange = null, bool compact = true)
+    internal static dfPanel AddArrowBox(this dfScrollPanel panel, string label, List<string> options, List<string> info = null, PropertyChangedEventHandler<string> onchange = null, bool compact = true, string defaultValue = null)
     {
       bool hasInfo = (info != null && info.Count > 0 && info.Count == options.Count);
 

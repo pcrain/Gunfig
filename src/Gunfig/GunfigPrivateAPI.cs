@@ -34,6 +34,10 @@ public partial class Gunfig
     internal List<string>            _values     = null;
     internal List<string>            _info       = null;
     internal Action<string, string>  _callback   = null;
+    internal string                  _defaultValue = null;           // default value when no config value exists
+    internal bool                    _callbackImmediately = false;     // invoke the callback when a pending value changes
+    internal Action<string, string>  _pendingValueChanged = null; // event handler for pending UI changes
+    internal List<string>            _selectableValues = null; // values available through normal menu navigation
   }
 
   [HarmonyPatch(typeof(FinalIntroSequenceManager), nameof(FinalIntroSequenceManager.Start))]
@@ -132,7 +136,14 @@ public partial class Gunfig
     if (item._itemType != ItemType.CheckBox && item._itemType != ItemType.ArrowBox)
       return;
     if (this._BaseGunfig.Value(item._key) == null) // make sure we have a default value for all loaded configuration options
-      this._BaseGunfig.Set(item._key, item._values[0]);
+    {
+      string defaultValue = item._defaultValue;
+
+      if (string.IsNullOrEmpty(defaultValue) || !item._values.Contains(defaultValue))
+        defaultValue = item._values[0];
+
+      this._BaseGunfig.Set(item._key, defaultValue);
+    }
   }
 
   private Gunfig GetSubMenu(string menuName)
@@ -176,12 +187,13 @@ public partial class Gunfig
           itemControl = _cachedConfigPage.AddCheckBox(label: item._label);
           break;
         case ItemType.ArrowBox:
-          itemControl = _cachedConfigPage.AddArrowBox(label: item._label, options: item._values, info: item._info);
+          itemControl = _cachedConfigPage.AddArrowBox(label: item._label, options: item._values, info: item._info, defaultValue: item._defaultValue);
           break;
       }
       if (item._itemType != ItemType.Label) // pure labels don't need a GunfigOption and handle markup processing on site
         itemControl.gameObject.AddComponent<GunfigOption>().Setup(
-          parentConfig: this._BaseGunfig, key: item._key, values: item._values, update: item._callback, updateType: item._updateType);
+          parentConfig: this._BaseGunfig, key: item._key, values: item._values, update: item._callback, updateType: item._updateType, defaultValue: item._defaultValue,
+          callbackImmediately: item._callbackImmediately, pendingValueChanged: item._pendingValueChanged, selectableValues: item._selectableValues);
     }
     return _cachedConfigPage;
   }

@@ -76,7 +76,7 @@ public partial class Gunfig
   /// <summary>
   /// Appends a new togglable option to the current <paramref name="Gunfig"/>'s config page.
   /// </summary>
-  /// <param name="key">The key for accessing the toggle's value through <c>GetBool()</c> and passed as the first parameter to the toggle's <paramref name="callback"/>. Must NOT be formatted.</param>
+  /// <param name="key">The key for accessing the toggle's value through <see cref="Enabled(string)"/> and <see cref="Disabled(string)"/>, and passed as the first parameter to the toggle's <paramref name="callback"/>. Must NOT be formatted.</param>
   /// <param name="enabled">Whether the toggle should be enabled by default if no prior configuration has been set.</param>
   /// <param name="label">The label displayed for the toggle on the config page. The toggle's <paramref name="key"/> will be displayed if no label is specified. Can be colorized using <see cref="WithColor()"/>.</param>
   /// <param name="callback">An optional Action to call when changes to the toggle are applied.
@@ -98,16 +98,36 @@ public partial class Gunfig
   /// <summary>
   /// Appends a new scrollbox option to the current <paramref name="Gunfig"/>'s config page.
   /// </summary>
-  /// <param name="key">The key for accessing the scrollbox's value through <c>Value()</c> and passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
+  /// <param name="key">The key for accessing the scrollbox's effective value through <see cref="Value(string)"/>, and passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
   /// <param name="options">A list of strings determining the valid values for the scrollbox, displayed verbatim on the config page. Can be individually colorized using <see cref="WithColor()"/>.</param>
   /// <param name="label">The label displayed for the scrollbox on the config page. The scrollbox's <paramref name="key"/> will be displayed if no label is specified. Can be colorized using <see cref="WithColor()"/>.</param>
   /// <param name="callback">An optional Action to call when changes to the scrollbox are applied.
   /// The callback's first argument will be the scrollbox's <paramref name="key"/>.
-  /// The callback's second argument will be the scrollbox's displayed value.</param>
+  /// The callback's second argument will be the scrollbox's applied value.</param>
   /// <param name="info">A list of strings determining informational text to be displayed alongside each value of the scrollbox. Must be null or match the length of <paramref name="options"/> exactly. Can be individually colorized using <see cref="WithColor()"/>.</param>
   /// <param name="updateType">Determines when changes to the option are applied. See <see cref="Gunfig.Update"/> documentation for descriptions of each option.</param>
-  public void AddScrollBox(string key, List<string> options, string label = null, Action<string, string> callback = null, List<string> info = null, Gunfig.Update updateType = Gunfig.Update.OnConfirm)
+  /// <param name="defaultValue">The value selected by default if no prior configuration exists for this option. Must match one of the values in <paramref name="options"/>. If null or invalid, the first option is used.</param>
+  /// <param name="callbackImmediately">Determines whether the scrollbox's <paramref name="callback"/> is also invoked immediately when the player changes the scrollbox's pending value. This does not change when the value itself is committed; that is still determined by <paramref name="updateType"/>. Defaults to <c>false</c>.</param>
+  /// <param name="pendingValueChanged">An optional Action to call immediately whenever the scrollbox's pending value changes. The callback's first argument will be the scrollbox's <paramref name="key"/>. The callback's second argument will be the new pending value. This callback is invoked regardless of <paramref name="updateType"/> and does not commit the pending value to the configuration. It is useful for responding to changes in the menu before the player confirms them. Defaults to <c>null</c>.</param>
+  /// <param name="selectableValues">An optional list restricting which values the player can select by navigating the scrollbox. Every value in this list must also appear in <paramref name="options"/>. Values in <paramref name="options"/> that are not included in this list remain valid values and may still be displayed or selected programmatically, but are skipped during left/right navigation. If <c>null</c>, all values in <paramref name="options"/> are selectable.</param>
+  public void AddScrollBox(string key, List<string> options, string label = null, Action<string, string> callback = null, List<string> info = null, Gunfig.Update updateType = Gunfig.Update.OnConfirm,
+    string defaultValue = null, bool callbackImmediately = false, Action<string, string> pendingValueChanged = null, List<string> selectableValues = null)
   {
+    if (options == null || options.Count == 0)
+      throw new ArgumentException("Scroll box options must contain at least one value.", nameof(options));
+
+    if (selectableValues != null)
+    {
+      if (selectableValues.Count == 0)
+        throw new ArgumentException("Scroll box selectable values must contain at least one value.", nameof(selectableValues));
+
+      foreach (string value in selectableValues)
+      {
+        if (!options.Contains(value))
+          throw new ArgumentException($"Selectable value '{value}' is not present in the scroll box options.", nameof(selectableValues));
+      }
+    }
+
     RegisterOption(new Item(){
       _itemType   = ItemType.ArrowBox,
       _updateType = updateType,
@@ -116,6 +136,10 @@ public partial class Gunfig
       _callback   = callback,
       _values     = options,
       _info       = info,
+      _defaultValue       = defaultValue,
+      _callbackImmediately = callbackImmediately,
+      _pendingValueChanged = pendingValueChanged,
+      _selectableValues   = selectableValues
     });
   }
 
@@ -133,7 +157,8 @@ public partial class Gunfig
         continue;
       if (item._key != key)
         continue;
-      item._values.Add(option);
+      if (!item._values.Contains(option))
+        item._values.Add(option);
       if (item._info != null)
         item._info.Add(info ?? string.Empty);
       return;
@@ -198,6 +223,65 @@ public partial class Gunfig
   }
 
   /// <summary>
+  /// Changes an option's pending value and updates its menu control immediately if the option's configuration page is generated and currently active. The change is not committed to the effective configuration until the player confirms the menu changes.
+  /// </summary>
+  /// <param name="key">The key for the option to change. Must NOT be formatted.</param>
+  /// <param name="value">The new value. Must exactly match one of the option's valid values.</param>
+  /// <returns><c>true</c> if the option exists and the value is valid; otherwise <c>false</c>.</returns>
+  public bool SetValue(string key, string value)
+  {
+    if (string.IsNullOrEmpty(key) || value == null)
+      return false;
+
+    if (this._cachedConfigPage == null)
+      return false;
+
+    dfList<dfControl> controls = this._cachedConfigPage.controls;
+
+    for (int i = 0; i < controls.Count; ++i)
+    {
+      GunfigOption option = controls[i].GetComponent<GunfigOption>();
+
+      if (option == null)
+        continue;
+
+      if (option.Matches(this._BaseGunfig, key))
+        return option.SetPendingValue(value);
+    }
+
+    return false;
+  }
+
+  /// <summary>
+  /// Retrieves the pending value of the option with key <paramref name="key"/>. Unlike <see cref="Value(string)"/>, this includes changes that have been made in the options menu but have not yet been confirmed.
+  /// </summary>
+  /// <param name="key">The key for the option we're interested in. Must NOT be formatted.</param>
+  /// <returns>The pending value of the option, or <c>null</c> if no such option exists or the option's configuration page is not currently active.</returns>
+  public string GetPendingValue(string key)
+  {
+    if (string.IsNullOrEmpty(key))
+      return null;
+
+    if (this._cachedConfigPage == null)
+      return null;
+
+    dfList<dfControl> controls = this._cachedConfigPage.controls;
+
+    for (int i = 0; i < controls.Count; ++i)
+    {
+      GunfigOption option = controls[i].GetComponent<GunfigOption>();
+
+      if (option == null)
+        continue;
+
+      if (option.Matches(this._BaseGunfig, key))
+        return option.GetPendingValue();
+    }
+
+    return null;
+  }
+
+  /// <summary>
   /// Retrieves the effective current value (i.e., not including changes awaiting menu confirmation) of the option with key <paramref name="key"/> for the current <paramref name="Gunfig"/>.
   /// </summary>
   /// <param name="string">The key for the option we're interested in.</param>
@@ -210,7 +294,7 @@ public partial class Gunfig
   /// <summary>
   /// Convenience function to retrieve the effective current enabled-ness (i.e., not including changes awaiting menu confirmation) of the toggle option with key <paramref name="key"/> for the current <paramref name="Gunfig"/>.
   /// </summary>
-  /// <param name="string">The key for the option we're interested in.</param>
+  /// <param name="string">The key for the option we're interested in. Must NOT be formatted.</param>
   /// <returns><c>true</c> if the boolean option with key <paramref name="key"/> is enabled, <c>false</c> if the boolean option is disabled or if no such boolean option exists.</returns>
   /// <remarks>Will always return false for options that aren't toggles.</remarks>
   public bool Enabled(string key)
