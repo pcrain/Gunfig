@@ -236,7 +236,7 @@ public partial class Gunfig
     if (this._cachedConfigPage == null)
       return false;
 
-    dfList<dfControl> controls = GunfigMenu.GetControls(this._cachedConfigPage);
+    dfList<dfControl> controls = this._cachedConfigPage.controls;
 
     for (int i = 0; i < controls.Count; ++i)
     {
@@ -265,7 +265,7 @@ public partial class Gunfig
     if (this._cachedConfigPage == null)
       return null;
 
-    dfList<dfControl> controls = GunfigMenu.GetControls(this._cachedConfigPage);
+    dfList<dfControl> controls = this._cachedConfigPage.controls;
 
     for (int i = 0; i < controls.Count; ++i)
     {
