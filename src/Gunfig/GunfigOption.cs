@@ -228,7 +228,7 @@ internal class GunfigOption : MonoBehaviour
           if (menuItem.labelOptions[i] != value)
             continue;
 
-          GunfigMenu._menuItemSelectedIndexRef(menuItem) = i;
+          menuItem.m_selectedIndex = i;
           menuItem.selectedLabelControl.Text = menuItem.labelOptions[i];
 
           if (menuItem.infoControl != null &&
@@ -256,7 +256,7 @@ internal class GunfigOption : MonoBehaviour
         if (menuItem.checkboxUnchecked != null)
           menuItem.checkboxUnchecked.IsVisible = !isChecked;
 
-        GunfigMenu._menuItemSelectedIndexRef(menuItem) = isChecked ? 1 : 0;
+        menuItem.m_selectedIndex = isChecked ? 1 : 0;
       }
 
       UpdateColors(menuItem, dim: false);
