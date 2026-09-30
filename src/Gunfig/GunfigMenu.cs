@@ -177,7 +177,7 @@ internal static class GunfigMenu
         handler.onChanged(item.m_self, item.labelOptions[item.m_selectedIndex]);
     }
 
-    private static void IncrementArrow(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs mouseEvent)
+    private static void ChangeArrow(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs mouseEvent, int direction)
     {
       GunfigOption option = item.GetComponent<GunfigOption>();
 
@@ -192,7 +192,7 @@ internal static class GunfigMenu
         item,
         option,
         currentIndex,
-        direction: 1);
+        direction: direction);
 
       if (nextIndex == currentIndex)
       {
@@ -200,11 +200,27 @@ internal static class GunfigMenu
         return;
       }
 
-      if (nextIndex == (currentIndex + 1) % item.labelOptions.Length)
+      if (direction == 1) // IncrementArrow
       {
-        // The normal next value is selectable, so let the game handle it.
-        orig(item, control, mouseEvent);
-        return;
+        if (nextIndex == (currentIndex + 1) % item.labelOptions.Length)
+        {
+          // The normal next value is selectable, so let the game handle it.
+          orig(item, control, mouseEvent);
+          return;
+        }
+      }
+      else // DecrementArrow
+      {
+        int normalNextIndex =
+          (currentIndex - 1 + item.labelOptions.Length) %
+          item.labelOptions.Length;
+
+        if (nextIndex == normalNextIndex)
+        {
+          // The normal previous value is selectable, so let the game handle it.
+          orig(item, control, mouseEvent);
+          return;
+        }
       }
 
       // Skip values that are valid but not selectable through normal navigation.
@@ -214,51 +230,18 @@ internal static class GunfigMenu
 
       item.m_selectedIndex = nextIndex;
 
-      InvokeHandleValueChanged(item);
+      // Notify the normal value-change pipeline after manually changing the selected index.
+      _handleValueChangedMethod.Invoke(item, null);
+    }
+
+    private static void IncrementArrow(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs mouseEvent)
+    {
+      ChangeArrow(orig, item, control, mouseEvent, 1);
     }
 
     private static void DecrementArrow(Action<BraveOptionsMenuItem, dfControl, dfMouseEventArgs> orig, BraveOptionsMenuItem item, dfControl control, dfMouseEventArgs mouseEvent)
     {
-      GunfigOption option = item.GetComponent<GunfigOption>();
-
-      if (option == null || item.labelOptions == null || item.labelOptions.Length == 0)
-      {
-        orig(item, control, mouseEvent);
-        return;
-      }
-
-      int currentIndex = item.m_selectedIndex;
-      int nextIndex = FindNextSelectableIndex(
-        item,
-        option,
-        currentIndex,
-        direction: -1);
-
-      if (nextIndex == currentIndex)
-      {
-        orig(item, control, mouseEvent);
-        return;
-      }
-
-      int normalNextIndex =
-        (currentIndex - 1 + item.labelOptions.Length) %
-        item.labelOptions.Length;
-
-      if (nextIndex == normalNextIndex)
-      {
-        // The normal previous value is selectable, so let the game handle it.
-        orig(item, control, mouseEvent);
-        return;
-      }
-
-      // Skip values that are valid but not selectable through normal navigation.
-      AkSoundEngine.PostEvent(
-        "Play_UI_menu_select_01",
-        item.gameObject);
-
-      item.m_selectedIndex = nextIndex;
-
-      InvokeHandleValueChanged(item);
+      ChangeArrow(orig, item, control, mouseEvent, -1);
     }
 
     // Find the next selectable value, wrapping around the available options. Values that are valid but not selectable are skipped.
@@ -278,12 +261,6 @@ internal static class GunfigMenu
       }
 
       return currentIndex;
-    }
-
-    // Notify the normal value-change pipeline after manually changing the selected index.
-    private static void InvokeHandleValueChanged(BraveOptionsMenuItem item)
-    {
-      _handleValueChangedMethod.Invoke(item, null);
     }
 
     private static void DoSelectedAction(Action<BraveOptionsMenuItem> orig, BraveOptionsMenuItem item)
@@ -703,7 +680,7 @@ internal static class GunfigMenu
     }
 
     // based on VisualPresetArrowSelectorPanel (without info) and ResolutionArrowSelectorPanelWithInfoBox (with info)
-    internal static dfPanel AddArrowBox(this dfScrollPanel panel, string label, List<string> options, List<string> info = null, PropertyChangedEventHandler<string> onchange = null, bool compact = true, string defaultValue = null)
+    internal static dfPanel AddArrowBox(this dfScrollPanel panel, string label, List<string> options, List<string> info = null, PropertyChangedEventHandler<string> onchange = null, bool compact = true)
     {
       bool hasInfo = (info != null && info.Count > 0 && info.Count == options.Count);
 

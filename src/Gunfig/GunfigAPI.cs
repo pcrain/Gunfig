@@ -20,29 +20,54 @@ public partial class Gunfig
   ///   2) when the callback (if any) associated with the option should be triggered, and
   ///   3) when the new value for the option should be written back to the configuration file.
   /// For all update types except <c>Immediate</c>, if the player backs out of the menu without confirming changes, none of the above events will occur.
+  /// In addition to the basic update types, there are also special flag values that can be OR'd with basic update types to change their behavior.
+  /// Currently, the only such value is <c>ImmediateCallback</c>
   /// </summary>
+  [Flags]
   public enum Update {
     /// <summary>
     /// Immediately sets the option's new value, writes it to the gunfig file, and triggers any callbacks when the menu item is changed, without confirmation.
     /// </summary>
-    Immediate,
+    Immediate = 0,
 
     /// <summary>
     /// (Default) Sets the option's new value, writes it to the gunfig file, and triggers any callbacks when the options menu is closed with changes confirmed.
     /// Discards the change if the menu is closed without confirming changes.
     /// </summary>
-    OnConfirm,
+    OnConfirm = 1,
 
     /// <summary>
     /// Writes the new option's value to the gunfig file when the options menu is closed with changes confirmed.
     /// Does not set the option's value in memory or trigger any callbacks.
     /// Discards the change without writing to the gunfig file if the menu is closed without confirming changes.
     /// </summary>
-    OnRestart,
+    OnRestart = 2,
+
+    // Reserved flags (<16)
+    None = 0,
+    DoNotUse1 = 1 << 0,  // for backwards compatibility with Immediate, OnConfirm, and OnRestart
+    DoNotUse2 = 1 << 1,  // for backwards compatibility with Immediate, OnConfirm, and OnRestart
+    DoNotUse3 = 1 << 2,  // reserved for future use
+    DoNotUse4 = 1 << 3,  // reserved for future use
+    UpdateTypeMask = 0b1111, // masking bits for getting the Update type
+
+    // Proper flags (>=16)
+    /// <summary>
+    /// If set, callback fires immediately; if clear, callback fires when option value is committed
+    /// </summary>
+    ImmediateCallback = 1 << 4,
   }
 
   /// <summary>Global event to be run once all mods dependent on MtG API are loaded in. Useful for dynamically populated scroll boxes.</summary>
   public static Action OnAllModsLoaded;
+  /// <summary>
+  /// Event to be run when a pending value is updated for a Scrollbox. Not implemented for toggles at the moment, but might be in the future.
+  /// The callback's first argument will be the scrollbox's <paramref name="key"/>.
+  /// The callback's second argument will be the new pending value. This callback is invoked regardless of <paramref name="updateType"/> and does not commit the pending value to the configuration.
+  /// It is useful for responding to changes in the menu before the player confirms them (e.g., updating selectable options via <paramref name="SetSelectableValues"/>)
+  /// </summary>
+  /// <param name="pendingValueChanged">An optional Action to call immediately whenever the scrollbox's pending value changes.</param>
+  public Action<string, string> OnPendingValueChanged;
 
   /// <summary>
   /// Retrieves the unique Gunfig associated with the given <paramref name="modName"/>, creating it if it doesn't yet exist.
@@ -106,27 +131,10 @@ public partial class Gunfig
   /// The callback's second argument will be the scrollbox's applied value.</param>
   /// <param name="info">A list of strings determining informational text to be displayed alongside each value of the scrollbox. Must be null or match the length of <paramref name="options"/> exactly. Can be individually colorized using <see cref="WithColor()"/>.</param>
   /// <param name="updateType">Determines when changes to the option are applied. See <see cref="Gunfig.Update"/> documentation for descriptions of each option.</param>
-  /// <param name="defaultValue">The value selected by default if no prior configuration exists for this option. Must match one of the values in <paramref name="options"/>. If null or invalid, the first option is used.</param>
-  /// <param name="callbackImmediately">Determines whether the scrollbox's <paramref name="callback"/> is also invoked immediately when the player changes the scrollbox's pending value. This does not change when the value itself is committed; that is still determined by <paramref name="updateType"/>. Defaults to <c>false</c>.</param>
-  /// <param name="pendingValueChanged">An optional Action to call immediately whenever the scrollbox's pending value changes. The callback's first argument will be the scrollbox's <paramref name="key"/>. The callback's second argument will be the new pending value. This callback is invoked regardless of <paramref name="updateType"/> and does not commit the pending value to the configuration. It is useful for responding to changes in the menu before the player confirms them. Defaults to <c>null</c>.</param>
-  /// <param name="selectableValues">An optional list restricting which values the player can select by navigating the scrollbox. Every value in this list must also appear in <paramref name="options"/>. Values in <paramref name="options"/> that are not included in this list remain valid values and may still be displayed or selected programmatically, but are skipped during left/right navigation. If <c>null</c>, all values in <paramref name="options"/> are selectable.</param>
-  public void AddScrollBox(string key, List<string> options, string label = null, Action<string, string> callback = null, List<string> info = null, Gunfig.Update updateType = Gunfig.Update.OnConfirm,
-    string defaultValue = null, bool callbackImmediately = false, Action<string, string> pendingValueChanged = null, List<string> selectableValues = null)
+  public void AddScrollBox(string key, List<string> options, string label = null, Action<string, string> callback = null, List<string> info = null, Gunfig.Update updateType = Gunfig.Update.OnConfirm)
   {
     if (options == null || options.Count == 0)
       throw new ArgumentException("Scroll box options must contain at least one value.", nameof(options));
-
-    if (selectableValues != null)
-    {
-      if (selectableValues.Count == 0)
-        throw new ArgumentException("Scroll box selectable values must contain at least one value.", nameof(selectableValues));
-
-      foreach (string value in selectableValues)
-      {
-        if (!options.Contains(value))
-          throw new ArgumentException($"Selectable value '{value}' is not present in the scroll box options.", nameof(selectableValues));
-      }
-    }
 
     RegisterOption(new Item(){
       _itemType   = ItemType.ArrowBox,
@@ -136,10 +144,6 @@ public partial class Gunfig
       _callback   = callback,
       _values     = options,
       _info       = info,
-      _defaultValue       = defaultValue,
-      _callbackImmediately = callbackImmediately,
-      _pendingValueChanged = pendingValueChanged,
-      _selectableValues   = selectableValues
     });
   }
 
@@ -164,6 +168,39 @@ public partial class Gunfig
       return;
     }
     ETGModConsole.Log($"WARNING: Tried to add dynamic option to non-existent scroll box {key}!");
+  }
+
+  /// <summary>
+  /// Restricts the set of selectable option values to <paramref name="selectableValues"/> for the scrollbox with the given <paramref name="key"/>
+  /// </summary>
+  /// <param name="key">The key for accessing the scrollbox's value through <c>Value()</c> and passed as the first parameter to the scrollbox's <paramref name="callback"/>. Must NOT be formatted.</param>
+  /// <param name="selectableValues">An optional list restricting which values the player can select by navigating the scrollbox.
+  /// Every value in this list must have been previously added as an option via <paramref name="AddScrollBox"/> or <paramref name="AddDynamicOptionToScrollBox"/>. Any values not included in this list remain valid values and may still be displayed or selected programmatically, but are skipped during left/right navigation. If <c>null</c>, makes all of the item's values selectable.</param>
+  public void SetSelectableValues(string key, List<string> selectableValues = null)
+  {
+    foreach (Item item in this._registeredOptions)
+    {
+      if (item._itemType != ItemType.ArrowBox)
+        continue;
+      if (item._key != key)
+        continue;
+
+      if (selectableValues != null)
+      {
+        if (selectableValues.Count == 0)
+          throw new ArgumentException("Scroll box selectable values must be null or contain at least one value.", nameof(selectableValues));
+
+        foreach (string value in selectableValues)
+        {
+          if (!item._values.Contains(value))
+            throw new ArgumentException($"Selectable value '{value}' is not present in the scroll box options.", nameof(selectableValues));
+        }
+      }
+
+      item._selectableValues = selectableValues;
+      return;
+    }
+    ETGModConsole.Log($"WARNING: Tried to set selectable values for non-existent scroll box {key}!");
   }
 
   /// <summary>
@@ -228,7 +265,7 @@ public partial class Gunfig
   /// <param name="key">The key for the option to change. Must NOT be formatted.</param>
   /// <param name="value">The new value. Must exactly match one of the option's valid values.</param>
   /// <returns><c>true</c> if the option exists and the value is valid; otherwise <c>false</c>.</returns>
-  public bool SetValue(string key, string value)
+  public bool SetPendingValue(string key, string value)
   {
     if (string.IsNullOrEmpty(key) || value == null)
       return false;
@@ -330,4 +367,20 @@ public static partial class GunfigHelpers
   public static string Magenta(this string s)            => s.WithColor(Color.magenta);
   public static string Gray(this string s)               => s.WithColor(Color.gray);
   public static string White(this string s)              => s.WithColor(Color.white);
+  // Convenience functions for setting the default value in a list of scrollbox options by rotating the list so that the desired option value is first.
+  // (Because I must pay for my sins of not including a default option parameter in the first place)
+  public static List<string> WithDefault(this List<string> options, int index)
+  {
+    if (options == null || index <= 0 || index >= options.Count)
+      return options; // nothing to do with an invalid index
+    int numOptions = options.Count;
+    List<string> rotated = new List<string>(numOptions);
+    for (int i = 0; i < numOptions; ++i)
+      rotated.Add(options[(i + index) % numOptions]);
+    return rotated;
+  }
+  public static List<string> WithDefault(this List<string> options, string option)
+  {
+    return options.WithDefault(options.IndexOf(option));
+  }
 }
