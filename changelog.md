@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0 (2026-10-04)
+
+#### API Changes (courtesy of [Milz](https://thunderstore.io/c/enter-the-gungeon/p/Milz/)!)
+
+- Added `OnPendingValueChanged` delegate for listening to pending option changes within a Gunfig instance
+- Added a new `Update.ImmediateCallback` flag, allowing pending configuration changes to trigger immediate callbacks
+- Added a `SetSelectableValues()` helper for dynamically enabling / disabling individual options in a scrollbox
+- Added `GetPendingValue()` and `SetPendingValue()` helpers for programmatically getting / setting the pending values of items
+  - Together, these changes enable menu options that dynamically change based on other options
+- Added `WithDefault()` helper for setting a scrollbox's default value to something other than the first option
+- Added extra validation logic throughout Gunfig's public API to fix a few minor bugs and display more helpful error messages when things go wrong
+
 ## 1.1.11 (2026-04-12)
 
 - Fixed an issue with player indices getting desynced and causing several issues in co-op mode when player 2 changes their character after player 1 changes theirs
